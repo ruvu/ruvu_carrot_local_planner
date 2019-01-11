@@ -1,16 +1,9 @@
 #pragma once
 
-#include <boost/shared_ptr.hpp>
-#include <boost/thread.hpp>
-
 #include <tf/transform_listener.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <ruvu_carrot_local_planner/CarrotPlannerConfig.h>
-
-#include <angles/angles.h>
-
-#include <nav_msgs/Odometry.h>
 
 #include <costmap_2d/costmap_2d_ros.h>
 #include <nav_core/base_local_planner.h>
@@ -80,7 +73,10 @@ namespace ruvu_carrot_local_planner {
 
       void publishGlobalPlan(std::vector<geometry_msgs::PoseStamped>& path);
 
-      bool carrotComputeVelocityCommands(const tf::Stamped<tf::Pose> &global_pose, const geometry_msgs::Twist& cmd_vel);
+      bool carrotComputeVelocityCommands(
+              const std::vector<geometry_msgs::PoseStamped> &path,
+              const tf::Stamped<tf::Pose> &global_pose,
+              geometry_msgs::Twist& cmd_vel);
 
       tf::TransformListener* tf_; ///< @brief Used for transforming point clouds
 

@@ -123,6 +123,27 @@ namespace ruvu_carrot_local_planner {
     delete dsrv_;
   }
 
+  bool CarrotPlannerROS::carrotComputeVelocityCommands(
+              const std::vector<geometry_msgs::PoseStamped> &path,
+              const tf::Stamped<tf::Pose> &global_pose,
+              geometry_msgs::Twist& cmd_vel) {
+    double x = global_pose.getOrigin().getX();
+    double y = global_pose.getOrigin().getY();
+    double yaw = tf::getYaw(global_pose.getRotation());
+    auto last = path.back();
+
+    double angle_to_goal = atan2(last.pose.position.y - y, last.pose.position.x - x);
+
+    double angle_error = angles::normalize_angle(yaw - angle_to_goal);
+    ROS_INFO_NAMED("ruvu_carrot_local_planner", "Yaw: %f, Goal: %f", yaw, angle_to_goal);
+    ROS_WARN_NAMED("ruvu_carrot_local_planner", "Angle error: %f", angle_error);
+\
+    cmd_vel.linear.x = 1.0;
+    cmd_vel.angular.z = -angle_error;
+
+    return true;
+  }
+
   bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel) {
     // dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close enough to goal
     tf::Stamped<tf::Pose> current_pose_;
@@ -152,7 +173,7 @@ namespace ruvu_carrot_local_planner {
       publishGlobalPlan(transformed_plan);
       publishLocalPlan(local_plan);
     } else {
-      bool isOk = carrotComputeVelocityCommands(current_pose_, cmd_vel);
+      bool isOk = carrotComputeVelocityCommands(transformed_plan, current_pose_, cmd_vel);
       if (isOk) {
         publishGlobalPlan(transformed_plan);
       } else {
@@ -162,9 +183,5 @@ namespace ruvu_carrot_local_planner {
       }
       return isOk;
     }
-  }
-
-  bool CarrotPlannerROS::carrotComputeVelocityCommands(const tf::Stamped<tf::Pose> &global_pose, const geometry_msgs::Twist& cmd_vel) {
-    return false;
   }
 };
