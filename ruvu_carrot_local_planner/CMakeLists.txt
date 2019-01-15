@@ -42,7 +42,8 @@ catkin_package(
 )
 
 add_library(ruvu_carrot_local_planner
-  src/carrot_planner_ros.cpp
+  src/carrot_planner_ros.cpp src/carrot_planner_ros.h
+  src/utils.h
 )
 add_dependencies(ruvu_carrot_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(ruvu_carrot_local_planner ${catkin_LIBRARIES})

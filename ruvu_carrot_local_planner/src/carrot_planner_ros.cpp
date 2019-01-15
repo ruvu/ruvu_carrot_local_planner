@@ -5,6 +5,8 @@
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
 
+#include "./utils.h"
+
 // register this planner as a BaseLocalPlanner plugin
 PLUGINLIB_EXPORT_CLASS(ruvu_carrot_local_planner::CarrotPlannerROS, nav_core::BaseLocalPlanner)
 
@@ -137,6 +139,12 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   double x = global_pose.getOrigin().getX();
   double y = global_pose.getOrigin().getY();
   double yaw = tf::getYaw(global_pose.getRotation());
+
+  auto it = min_by(path.begin(), path.end(), [&](const geometry_msgs::PoseStamped& a) {
+    return base_local_planner::getGoalPositionDistance(global_pose, a.pose.position.x, a.pose.position.y);
+  });
+  ROS_INFO_STREAM_NAMED("ruvu_carrot_local_planner", "min element at: " << std::distance(path.begin(), it));
+
   auto last = path.back();
 
   double angle_to_goal = atan2(last.pose.position.y - y, last.pose.position.x - x);
