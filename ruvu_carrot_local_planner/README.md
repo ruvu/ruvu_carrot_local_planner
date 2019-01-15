@@ -15,3 +15,4 @@ Based on the `acc_lim_x` the forward velocity is increased until the maximum vel
 When the lookahead point reaches the end of the path, the robot switches into the end-of-path mode. There are two options:
 1. The robot uses the last two points on the path to determine a line along the curvature of the path. The lookahead point travels along this line.
 2. The robot draws a line between the current position and the last point, saves this angle. The lookahead point travels along this line.
+![alt text](doc/stopping.png "Stopping options")
