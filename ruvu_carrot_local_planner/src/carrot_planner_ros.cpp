@@ -1,8 +1,4 @@
 #include "./carrot_planner_ros.h"
-#include <Eigen/Core>
-#include <cmath>
-
-#include <ros/console.h>
 
 #include <pluginlib/class_list_macros.h>
 
