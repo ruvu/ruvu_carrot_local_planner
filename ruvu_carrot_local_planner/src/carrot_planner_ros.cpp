@@ -4,6 +4,7 @@
 
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "./utils.h"
 
@@ -62,6 +63,7 @@ void CarrotPlannerROS::initialize(std::string name, tf::TransformListener* tf, c
     ros::NodeHandle private_nh("~/" + name);
     g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
     l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
+    debug_pub_ = private_nh.advertise<visualization_msgs::MarkerArray>("visualization", 1);
     tf_ = tf;
     costmap_ros_ = costmap_ros;
 
@@ -160,6 +162,25 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
     ROS_WARN_STREAM_NAMED("ruvu_carrot_local_planner", "carrot is at the end of the path");
     return false;
   }
+
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = global_pose.frame_id_;
+  marker.header.stamp = global_pose.stamp_;
+  marker.ns = "carrot";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::SPHERE;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose = carrot->pose;
+  marker.scale.x = 0.2;
+  marker.scale.y = 0.2;
+  marker.scale.z = 0.2;
+  marker.color.a = 1.0;
+  marker.color.r = 1.0;
+  marker.color.g = 0.5;
+  marker.color.b = 0.0;
+  visualization_msgs::MarkerArray markers;
+  markers.markers = { marker };
+  debug_pub_.publish(markers);
 
   // convert to tf
   tf::Stamped<tf::Pose> carrot_pose;
