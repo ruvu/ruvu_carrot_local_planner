@@ -13,6 +13,12 @@
 
 namespace ruvu_carrot_local_planner
 {
+struct CarrotPlannerParameters
+{
+  double carrot_distance;
+  double p_angle;
+};
+
 /**
  * @class CarrotPlannerROS
  * @brief ROS Wrapper for the CarrotPlanner that adheres to the
@@ -98,5 +104,7 @@ private:
 
   base_local_planner::OdometryHelperRos odom_helper_;
   std::string odom_topic_;
+
+  CarrotPlannerParameters parameters;
 };
 };

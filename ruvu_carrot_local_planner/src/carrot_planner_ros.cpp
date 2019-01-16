@@ -46,7 +46,9 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   limits.rot_stopped_vel = config.rot_stopped_vel;
   planner_util_.reconfigureCB(limits, config.restore_defaults);
 
-  // TODO: update parameters specific to this module
+  // initialize parameters specific to this module
+  parameters.carrot_distance = config.carrot_distance;
+  parameters.p_angle = config.p_angle;
 }
 
 CarrotPlannerROS::CarrotPlannerROS() : odom_helper_("odom")
@@ -136,25 +138,40 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
                                                      const tf::Stamped<tf::Pose>& global_pose,
                                                      geometry_msgs::Twist& cmd_vel)
 {
+  // look for the closest point on the path
+  auto closest = min_by(path.begin(), path.end(), [&](const geometry_msgs::PoseStamped& ps) {
+    return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
+  });
+  ROS_INFO_STREAM_NAMED("ruvu_carrot_local_planner", "closest element at: " << std::distance(path.begin(), closest));
+
+  // convert to tf
+  tf::Stamped<tf::Pose> closest_pose;
+  tf::poseStampedMsgToTF(*closest, closest_pose);
+
+  // walk carrot_distance forward
+  auto carrot = std::find_if(closest, path.end(), [&](const geometry_msgs::PoseStamped& ps) {
+    return parameters.carrot_distance <
+           base_local_planner::getGoalPositionDistance(closest_pose, ps.pose.position.x, ps.pose.position.y);
+  });
+  ROS_INFO_STREAM_NAMED("ruvu_carrot_local_planner", "carrot element at: " << std::distance(path.begin(), carrot));
+
+  if (carrot == path.end())
+  {
+    ROS_WARN_STREAM_NAMED("ruvu_carrot_local_planner", "carrot is at the end of the path");
+    return false;
+  }
+
+  // convert to tf
+  tf::Stamped<tf::Pose> carrot_pose;
+  tf::poseStampedMsgToTF(*carrot, carrot_pose);
+
   double x = global_pose.getOrigin().getX();
   double y = global_pose.getOrigin().getY();
-  double yaw = tf::getYaw(global_pose.getRotation());
-
-  auto it = min_by(path.begin(), path.end(), [&](const geometry_msgs::PoseStamped& a) {
-    return base_local_planner::getGoalPositionDistance(global_pose, a.pose.position.x, a.pose.position.y);
-  });
-  ROS_INFO_STREAM_NAMED("ruvu_carrot_local_planner", "min element at: " << std::distance(path.begin(), it));
-
-  auto last = path.back();
-
-  double angle_to_goal = atan2(last.pose.position.y - y, last.pose.position.x - x);
-
-  double angle_error = angles::normalize_angle(yaw - angle_to_goal);
-  ROS_INFO_NAMED("ruvu_carrot_local_planner", "Yaw: %f, Goal: %f", yaw, angle_to_goal);
-  ROS_WARN_NAMED("ruvu_carrot_local_planner", "Angle error: %f", angle_error);
+  double angle_to_goal = atan2(carrot->pose.position.y - y, carrot->pose.position.x - x);
+  double angle_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_goal);
 
   cmd_vel.linear.x = 1.0;
-  cmd_vel.angular.z = -angle_error;
+  cmd_vel.angular.z = parameters.p_angle * angle_error;
 
   return true;
 }
