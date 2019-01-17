@@ -150,17 +150,47 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   tf::Stamped<tf::Pose> closest_pose;
   tf::poseStampedMsgToTF(*closest, closest_pose);
 
-  // walk carrot_distance forward
-  auto carrot = std::find_if(closest, path.end(), [&](const geometry_msgs::PoseStamped& ps) {
-    return parameters.carrot_distance <
-           base_local_planner::getGoalPositionDistance(closest_pose, ps.pose.position.x, ps.pose.position.y);
-  });
-  ROS_INFO_STREAM_NAMED("ruvu_carrot_local_planner", "carrot element at: " << std::distance(path.begin(), carrot));
-
-  if (carrot == path.end())
+  // walk carrot_distance forward to find the carrot
+  geometry_msgs::PoseStamped carrot;
   {
-    ROS_WARN_STREAM_NAMED("ruvu_carrot_local_planner", "carrot is at the end of the path");
-    return false;
+    double distance = parameters.carrot_distance;
+
+    tf::Stamped<tf::Pose> previous;
+    tf::Stamped<tf::Pose> current;
+
+    auto it = closest;
+    tf::poseStampedMsgToTF(*it, current);
+    for (; ++it < path.end();)
+    {
+      // update previous & current
+      previous = current;
+      tf::poseStampedMsgToTF(*it, current);
+
+      distance -= (current.getOrigin() - previous.getOrigin()).length();
+      if (distance <= 0)
+      {
+        break;
+      }
+    }
+
+    if (it == path.end())
+    {
+      // The carrot point is further than path.end(), so let's extrapolate the path
+      // We can't use the orientation of the last point because it could be in a different direction. The point before
+      // that has a almost random orientation
+      if (it - 3 >= path.begin())
+      {
+        tf::poseStampedMsgToTF(*(it - 3), previous);
+      }
+
+      auto direction = tf::quatRotate(previous.getRotation(), tf::Vector3(distance, 0, 0));
+      current.setOrigin(current.getOrigin() + direction);
+      tf::poseStampedTFToMsg(current, carrot);
+    }
+    else
+    {
+      carrot = *it;
+    }
   }
 
   visualization_msgs::Marker marker;
@@ -170,7 +200,7 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   marker.id = 0;
   marker.type = visualization_msgs::Marker::SPHERE;
   marker.action = visualization_msgs::Marker::ADD;
-  marker.pose = carrot->pose;
+  marker.pose = carrot.pose;
   marker.scale.x = 0.2;
   marker.scale.y = 0.2;
   marker.scale.z = 0.2;
@@ -184,11 +214,11 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
 
   // convert to tf
   tf::Stamped<tf::Pose> carrot_pose;
-  tf::poseStampedMsgToTF(*carrot, carrot_pose);
+  tf::poseStampedMsgToTF(carrot, carrot_pose);
 
   double x = global_pose.getOrigin().getX();
   double y = global_pose.getOrigin().getY();
-  double angle_to_goal = atan2(carrot->pose.position.y - y, carrot->pose.position.x - x);
+  double angle_to_goal = atan2(carrot.pose.position.y - y, carrot.pose.position.x - x);
   double angle_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_goal);
 
   cmd_vel.linear.x = 1.0;
