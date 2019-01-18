@@ -85,7 +85,7 @@ private:
                                      const tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel);
 
   void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path, const tf::Stamped<tf::Pose>& global_pose,
-                     tf::Stamped<tf::Pose>& carrot);
+                     tf::Stamped<tf::Pose>& carrot, double& goal_distance);
 
   tf::TransformListener* tf_;  ///< @brief Used for transforming point clouds
 

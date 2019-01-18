@@ -141,40 +141,57 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
                                                      geometry_msgs::Twist& cmd_vel)
 {
   tf::Stamped<tf::Pose> carrot;
-  computeCarrot(path, global_pose, carrot);
+  double goal_distance;
+  computeCarrot(path, global_pose, carrot, goal_distance);
+  ROS_INFO_NAMED("ruvu_carrot_local_planner", "goal distance: %f", goal_distance);
 
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = global_pose.frame_id_;
-  marker.header.stamp = global_pose.stamp_;
-  marker.ns = "carrot";
-  marker.id = 0;
-  marker.type = visualization_msgs::Marker::SPHERE;
-  marker.action = visualization_msgs::Marker::ADD;
-  tf::poseTFToMsg(carrot, marker.pose);
-  marker.scale.x = 0.2;
-  marker.scale.y = 0.2;
-  marker.scale.z = 0.2;
-  marker.color.a = 1.0;
-  marker.color.r = 1.0;
-  marker.color.g = 0.5;
-  marker.color.b = 0.0;
-  visualization_msgs::MarkerArray markers;
-  markers.markers = { marker };
-  debug_pub_.publish(markers);
+  {
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = global_pose.frame_id_;
+    marker.header.stamp = global_pose.stamp_;
+    marker.ns = "carrot";
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::SPHERE;
+    marker.action = visualization_msgs::Marker::ADD;
+    tf::poseTFToMsg(carrot, marker.pose);
+    marker.scale.x = 0.2;
+    marker.scale.y = 0.2;
+    marker.scale.z = 0.2;
+    marker.color.a = 1.0;
+    marker.color.r = 1.0;
+    marker.color.g = 0.5;
+    marker.color.b = 0.0;
+    visualization_msgs::MarkerArray markers;
+    markers.markers = { marker };
+    debug_pub_.publish(markers);
+  }
 
-  double x = global_pose.getOrigin().getX();
-  double y = global_pose.getOrigin().getY();
-  double angle_to_goal = atan2(carrot.getOrigin().getY() - y, carrot.getOrigin().getX() - x);
+  nav_msgs::Odometry odom;
+  odom_helper_.getOdom(odom);
+
+  auto limits = planner_util_.getCurrentLimits();
+  // Don't go faster than the braking distance sqrt(2as)
+  double v_max = sqrt(2 * limits.acc_lim_x * goal_distance);
+  cmd_vel.linear.x = v_max > limits.max_vel_x ? limits.max_vel_x : v_max;
+
+  auto error = carrot.getOrigin() - global_pose.getOrigin();
+  double angle_to_goal = atan2(error.getY(), error.getX());
   double angle_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_goal);
-
-  cmd_vel.linear.x = 1.0;
   cmd_vel.angular.z = parameters.p_angle * angle_error;
+
+  // If we rotate faster than possible, scale back the both velocities
+  if (fabs(cmd_vel.angular.z) > limits.max_rot_vel)
+  {
+    cmd_vel.linear.x = cmd_vel.linear.x * limits.max_rot_vel / fabs(cmd_vel.angular.z);
+    cmd_vel.angular.z = cmd_vel.angular.z * limits.max_rot_vel / fabs(cmd_vel.angular.z);
+  }
 
   return true;
 }
 
 void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
-                                     const tf::Stamped<tf::Pose>& global_pose, tf::Stamped<tf::Pose>& carrot)
+                                     const tf::Stamped<tf::Pose>& global_pose, tf::Stamped<tf::Pose>& carrot,
+                                     double& goal_distance)
 {
   // Look for the closest point on the path
   auto closest = min_by(path.begin(), path.end(), [&](const geometry_msgs::PoseStamped& ps) {
@@ -201,6 +218,8 @@ void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStampe
       break;
     }
   }
+
+  goal_distance = parameters.carrot_distance - distance;
 
   if (it == path.end())
   {
