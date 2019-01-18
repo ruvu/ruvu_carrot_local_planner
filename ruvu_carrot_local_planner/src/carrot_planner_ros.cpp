@@ -176,26 +176,22 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
 void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
                                      const tf::Stamped<tf::Pose>& global_pose, tf::Stamped<tf::Pose>& carrot)
 {
-  // look for the closest point on the path
+  // Look for the closest point on the path
   auto closest = min_by(path.begin(), path.end(), [&](const geometry_msgs::PoseStamped& ps) {
     return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
   });
   ROS_INFO_STREAM_NAMED("ruvu_carrot_local_planner", "closest element at: " << std::distance(path.begin(), closest));
 
-  // convert to tf
-  tf::Stamped<tf::Pose> closest_pose;
-  tf::poseStampedMsgToTF(*closest, closest_pose);
-
+  // Walk along the path forward and count the distance. When carrot_distance has been walked, the carrot is found.
   double distance = parameters.carrot_distance;
 
+  auto it = closest;
   tf::Stamped<tf::Pose> previous;
   tf::Stamped<tf::Pose> current;
-
-  auto it = closest;
   tf::poseStampedMsgToTF(*it, current);
   for (; ++it < path.end();)
   {
-    // update previous & current
+    // Update previous & current
     previous = current;
     tf::poseStampedMsgToTF(*it, current);
 
@@ -210,12 +206,14 @@ void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStampe
   {
     // The carrot point is further than path.end(), so let's extrapolate the path
     // We can't use the orientation of the last point because it could be in a different direction. The point before
-    // that has a almost random orientation
+    // that has a almost random orientation in the current global_planner implementation. So let's take the point before
+    // that because it appears to be more stable.
     if (it - 3 >= path.begin())
     {
       tf::poseStampedMsgToTF(*(it - 3), previous);
     }
 
+    // Travel `distance` meters in that direction
     auto direction = tf::quatRotate(previous.getRotation(), tf::Vector3(distance, 0, 0));
     current.setOrigin(current.getOrigin() + direction);
   }
@@ -224,7 +222,7 @@ void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStampe
 
 bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
 {
-  // dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
+  // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
   // enough to goal
   tf::Stamped<tf::Pose> current_pose_;
   if (!costmap_ros_->getRobotPose(current_pose_))
@@ -239,7 +237,7 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
     return false;
   }
 
-  // if the global plan passed in is empty... we won't do anything
+  // If the global plan passed in is empty... we won't do anything
   if (transformed_plan.empty())
   {
     ROS_WARN_NAMED("ruvu_carrot_local_planner", "Received an empty transformed plan.");
@@ -251,7 +249,7 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
   {
     goal_reached_ = true;
 
-    // publish an empty plan because we've reached our goal position
+    // Publish an empty plan because we've reached our goal position
     std::vector<geometry_msgs::PoseStamped> local_plan;
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
     publishGlobalPlan(transformed_plan);
