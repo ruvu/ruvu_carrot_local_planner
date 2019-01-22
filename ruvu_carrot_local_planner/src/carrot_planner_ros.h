@@ -73,6 +73,11 @@ public:
 
 private:
   /**
+   * @brief Helper function
+   */
+  double getSimPeriodParam(ros::NodeHandle private_nh);
+
+  /**
    * @brief Callback to update the local planner's parameters based on dynamic reconfigure
    */
   void reconfigureCB(CarrotPlannerConfig& config, uint32_t level);
@@ -109,5 +114,6 @@ private:
   std::string odom_topic_;
 
   CarrotPlannerParameters parameters;
+  double sim_period_;
 };
 };
