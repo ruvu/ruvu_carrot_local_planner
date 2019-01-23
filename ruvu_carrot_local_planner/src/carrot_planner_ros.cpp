@@ -223,10 +223,14 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   // Smooth the required velocity with the maximum acceleration
   double max_x_step = limits.acc_lim_x * sim_period_;
   double max_theta_step = limits.acc_lim_theta * sim_period_;
-
-  if (fabs(odom.twist.twist.linear.x - cmd_vel.linear.x) > max_x_step)
+  if (fabs(cmd_vel.linear.x - odom.twist.twist.linear.x) > max_x_step)
   {
-    cmd_vel.linear.x = odom.twist.twist.linear.x + sgn(odom.twist.twist.linear.x - cmd_vel.linear.x) * max_x_step;
+    cmd_vel.linear.x = odom.twist.twist.linear.x + sgn(cmd_vel.linear.x - odom.twist.twist.linear.x) * max_x_step;
+  }
+  if (fabs(cmd_vel.angular.z - odom.twist.twist.angular.z) > max_theta_step)
+  {
+    cmd_vel.angular.z =
+        odom.twist.twist.angular.z + sgn(cmd_vel.angular.z - odom.twist.twist.angular.z) * max_theta_step;
   }
 
   return true;
