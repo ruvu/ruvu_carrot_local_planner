@@ -88,7 +88,7 @@ void CarrotPlannerROS::initialize(std::string name, tf::TransformListener* tf, c
   }
   else
   {
-    ROS_WARN("This planner has already been initialized, doing nothing.");
+    ROS_WARN_NAMED("ruvu_carrot_local_planner", "This planner has already been initialized, doing nothing.");
   }
 }
 
@@ -115,11 +115,12 @@ double CarrotPlannerROS::getSimPeriodParam(ros::NodeHandle private_nh)
     }
     else
     {
-      ROS_WARN("A controller_frequency less than 0 has been set. Ignoring the parameter, assuming a rate of 20Hz");
+      ROS_WARN_NAMED("ruvu_carrot_local_planner", "A controller_frequency less than 0 has been set. Ignoring the "
+                                                  "parameter, assuming a rate of 20Hz");
       sim_period = 0.05;
     }
   }
-  ROS_INFO("Sim period is set to %.2f", sim_period);
+  ROS_INFO_NAMED("ruvu_carrot_local_planner", "Sim period is set to %.2f", sim_period);
 
   return sim_period;
 }
@@ -128,13 +129,14 @@ bool CarrotPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped>& or
 {
   if (!isInitialized())
   {
-    ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
+    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "This planner has not been initialized, please call initialize() "
+                                                 "before using this planner");
     return false;
   }
   // when we get a new plan, we also want to clear any latch we may have on goal tolerances
   latchedStopRotateController_.resetLatching();
 
-  ROS_INFO("Got new plan");
+  ROS_INFO_NAMED("ruvu_carrot_local_planner", "Got new plan");
   goal_reached_ = false;
   return planner_util_.setPlan(orig_global_plan);
 }
@@ -143,13 +145,14 @@ bool CarrotPlannerROS::isGoalReached()
 {
   if (!isInitialized())
   {
-    ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
+    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "This planner has not been initialized, please call initialize() "
+                                                 "before using this planner");
     return false;
   }
 
   if (goal_reached_)
   {
-    ROS_INFO("CarrotPlanner: Goal reached.");
+    ROS_INFO_NAMED("ruvu_carrot_local_planner", "CarrotPlanner: Goal reached.");
   }
   return goal_reached_;
 }
@@ -293,13 +296,13 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
   tf::Stamped<tf::Pose> current_pose_;
   if (!costmap_ros_->getRobotPose(current_pose_))
   {
-    ROS_ERROR("Could not get robot pose");
+    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
     return false;
   }
   std::vector<geometry_msgs::PoseStamped> transformed_plan;
   if (!planner_util_.getLocalPlan(current_pose_, transformed_plan))
   {
-    ROS_ERROR("Could not get local plan");
+    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get local plan");
     return false;
   }
 
