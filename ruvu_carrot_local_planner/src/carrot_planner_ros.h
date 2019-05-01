@@ -107,7 +107,6 @@ private:
   base_local_planner::LatchedStopRotateController latchedStopRotateController_;
 
   bool initialized_ = false;
-  bool goal_reached_ = false;
 
   base_local_planner::OdometryHelperRos odom_helper_;
   std::string odom_topic_;

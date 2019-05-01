@@ -137,7 +137,6 @@ bool CarrotPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped>& or
   latchedStopRotateController_.resetLatching();
 
   ROS_INFO_NAMED("ruvu_carrot_local_planner", "Got new plan");
-  goal_reached_ = false;
   return planner_util_.setPlan(orig_global_plan);
 }
 
@@ -149,12 +148,22 @@ bool CarrotPlannerROS::isGoalReached()
                                                  "before using this planner");
     return false;
   }
-
-  if (goal_reached_)
+  tf::Stamped<tf::Pose> current_pose_;
+  if (!costmap_ros_->getRobotPose(current_pose_))
   {
-    ROS_INFO_NAMED("ruvu_carrot_local_planner", "CarrotPlanner: Goal reached.");
+    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
+    return false;
   }
-  return goal_reached_;
+
+  if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
+  {
+    ROS_INFO_NAMED("ruvu_carrot_local_planner", "Goal reached");
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 
 void CarrotPlannerROS::publishLocalPlan(std::vector<geometry_msgs::PoseStamped>& path)
@@ -329,13 +338,12 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
 
   if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
   {
-    goal_reached_ = true;
-
     // Publish an empty plan because we've reached our goal position
     std::vector<geometry_msgs::PoseStamped> local_plan;
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
     publishGlobalPlan(transformed_plan);
     publishLocalPlan(local_plan);
+    return true;  // cmd_vel of 0 to stop
   }
   else
   {
