@@ -220,7 +220,21 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   auto error = carrot.getOrigin() - global_pose.getOrigin();
   double angle_to_goal = atan2(error.getY(), error.getX());
   double angle_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_goal);
+
+  double pose_error = angles::shortest_angular_distance(tf::getYaw(closest->pose.orientation), angle_to_goal);
+  bool switch_direction = !(-M_PI_2 < pose_error && pose_error < M_PI_2);
+
+  if (switch_direction)
+  {
+    angle_error = angles::normalize_angle(angle_error + M_PI);
+  }
+
   cmd_vel.angular.z = parameters.p_angle * angle_error;
+
+  if (switch_direction)
+  {
+    cmd_vel.linear.x = -cmd_vel.linear.x;
+  }
 
   // If we rotate faster than possible, scale back the both velocities
   if (fabs(cmd_vel.angular.z) > limits.max_rot_vel)
