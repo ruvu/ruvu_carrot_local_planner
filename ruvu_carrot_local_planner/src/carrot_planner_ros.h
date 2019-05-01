@@ -1,7 +1,5 @@
 #pragma once
 
-#include <tf/transform_listener.h>
-
 #include <dynamic_reconfigure/server.h>
 #include <ruvu_carrot_local_planner/CarrotPlannerConfig.h>
 
@@ -89,8 +87,9 @@ private:
   bool carrotComputeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
                                      const tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel);
 
-  void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path, const tf::Stamped<tf::Pose>& global_pose,
-                     tf::Stamped<tf::Pose>& carrot, double& goal_distance);
+  void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
+                     std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot,
+                     double& goal_distance);
 
   tf::TransformListener* tf_;  ///< @brief Used for transforming point clouds
 

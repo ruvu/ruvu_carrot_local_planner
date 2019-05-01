@@ -177,10 +177,16 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
                                                      const tf::Stamped<tf::Pose>& global_pose,
                                                      geometry_msgs::Twist& cmd_vel)
 {
+  // Look for the closest point on the path
+  auto closest = min_by(path.begin(), path.end(), [&](const geometry_msgs::PoseStamped& ps) {
+    return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
+  });
+  ROS_DEBUG_STREAM_NAMED("ruvu_carrot_local_planner", "closest element at: " << std::distance(path.begin(), closest));
+
   tf::Stamped<tf::Pose> carrot;
   double goal_distance;
-  computeCarrot(path, global_pose, carrot, goal_distance);
-  ROS_INFO_NAMED("ruvu_carrot_local_planner", "goal distance: %f", goal_distance);
+  computeCarrot(path, closest, carrot, goal_distance);
+  ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "goal distance: %f", goal_distance);
 
   {
     visualization_msgs::Marker marker;
@@ -240,19 +246,12 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
 }
 
 void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
-                                     const tf::Stamped<tf::Pose>& global_pose, tf::Stamped<tf::Pose>& carrot,
-                                     double& goal_distance)
+                                     std::vector<geometry_msgs::PoseStamped>::const_iterator it,
+                                     tf::Stamped<tf::Pose>& carrot, double& goal_distance)
 {
-  // Look for the closest point on the path
-  auto closest = min_by(path.begin(), path.end(), [&](const geometry_msgs::PoseStamped& ps) {
-    return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
-  });
-  ROS_INFO_STREAM_NAMED("ruvu_carrot_local_planner", "closest element at: " << std::distance(path.begin(), closest));
-
   // Walk along the path forward and count the distance. When carrot_distance has been walked, the carrot is found.
   double distance = parameters.carrot_distance;
 
-  auto it = closest;
   tf::Stamped<tf::Pose> previous;
   tf::Stamped<tf::Pose> current;
   tf::poseStampedMsgToTF(*it, current);
