@@ -312,6 +312,10 @@ void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStampe
     {
       tf::poseStampedMsgToTF(*(it - 3), previous);
     }
+    else
+    {
+      ROS_WARN_NAMED("ruvu_carrot_local_planner", "Can't extrapolate the path properly because it's too short");
+    }
 
     // Travel `distance` meters in that direction
     auto direction = tf::quatRotate(previous.getRotation(), tf::Vector3(distance, 0, 0));
