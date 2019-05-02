@@ -155,14 +155,22 @@ bool CarrotPlannerROS::isGoalReached()
     return false;
   }
 
-  if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
+  if (!latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
   {
-    ROS_INFO_NAMED("ruvu_carrot_local_planner", "Goal reached");
-    return true;
+    return false;
+  }
+
+  nav_msgs::Odometry odom;
+  odom_helper_.getOdom(odom);
+  if (!base_local_planner::stopped(odom, planner_util_.getCurrentLimits().rot_stopped_vel,
+                                   planner_util_.getCurrentLimits().trans_stopped_vel))
+  {
+    return false;
   }
   else
   {
-    return false;
+    ROS_INFO_NAMED("ruvu_carrot_local_planner", "Goal reached");
+    return true;
   }
 }
 
