@@ -93,6 +93,8 @@ private:
                      std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot,
                      double& goal_distance);
 
+  bool checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples);
+
   tf::TransformListener* tf_;  ///< @brief Used for transforming point clouds
 
   // for visualisation, publishers of global and local plan
