@@ -227,18 +227,27 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   cmd_vel.linear.x = v_max > limits.max_vel_x ? limits.max_vel_x : v_max;
 
   auto error = carrot.getOrigin() - global_pose.getOrigin();
-  double angle_to_goal = atan2(error.getY(), error.getX());
-  double angle_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_goal);
+  double angle_to_carrot = atan2(error.getY(), error.getX());
+  double carrot_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_carrot);
 
-  double pose_error = angles::shortest_angular_distance(tf::getYaw(closest->pose.orientation), angle_to_goal);
-  bool switch_direction = !(-M_PI_2 < pose_error && pose_error < M_PI_2);
+  // determine the position of the carrot relative to the closest point
+  tf::Point closest_position;
+  tf::pointMsgToTF(closest->pose.position, closest_position);
+  auto rel_carrot = carrot.getOrigin() - closest_position;
+
+  // Determine the angle of the poses on the path relative to the direction of the path. The direciton of the path can
+  // be estimated by looking at the location of the carrot relative the the closest point. That is "forward" along the
+  // path.
+  double path_direction = angles::shortest_angular_distance(tf::getYaw(closest->pose.orientation),
+                                                            atan2(rel_carrot.getY(), rel_carrot.getX()));
+  bool switch_direction = !(-M_PI_2 < path_direction && path_direction < M_PI_2);
 
   if (switch_direction)
   {
-    angle_error = angles::normalize_angle(angle_error + M_PI);
+    carrot_error = angles::normalize_angle(carrot_error + M_PI);
   }
 
-  cmd_vel.angular.z = parameters.p_angle * angle_error;
+  cmd_vel.angular.z = parameters.p_angle * carrot_error;
 
   if (switch_direction)
   {

@@ -9,6 +9,8 @@
 
 #include <base_local_planner/odometry_helper_ros.h>
 
+#include "./local_planner_util.h"
+
 namespace ruvu_carrot_local_planner
 {
 struct CarrotPlannerParameters
@@ -96,7 +98,7 @@ private:
   // for visualisation, publishers of global and local plan
   ros::Publisher g_plan_pub_, l_plan_pub_, debug_pub_;
 
-  base_local_planner::LocalPlannerUtil planner_util_;
+  LocalPlannerUtil planner_util_;
 
   costmap_2d::Costmap2DROS* costmap_ros_;
 
