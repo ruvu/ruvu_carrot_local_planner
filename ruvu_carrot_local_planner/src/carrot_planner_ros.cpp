@@ -160,11 +160,12 @@ bool CarrotPlannerROS::isGoalReached()
     return false;
   }
 
-  if(latchedStopRotateController_.isGoalReached(&planner_util_, odom_helper_, current_pose_))
+  if (latchedStopRotateController_.isGoalReached(&planner_util_, odom_helper_, current_pose_))
   {
     ROS_INFO("Goal reached");
     return true;
-  } else
+  }
+  else
   {
     return false;
   }
@@ -362,13 +363,8 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
     publishLocalPlan(local_plan);
     base_local_planner::LocalPlannerLimits limits = planner_util_.getCurrentLimits();
     return latchedStopRotateController_.computeVelocityCommandsStopRotate(
-      cmd_vel,
-      limits.getAccLimits(),
-      sim_period_,
-      &planner_util_,
-      odom_helper_,
-      current_pose_,
-      boost::bind(&CarrotPlannerROS::checkTrajectory, this, _1, _2, _3));
+        cmd_vel, limits.getAccLimits(), sim_period_, &planner_util_, odom_helper_, current_pose_,
+        boost::bind(&CarrotPlannerROS::checkTrajectory, this, _1, _2, _3));
   }
   else
   {
