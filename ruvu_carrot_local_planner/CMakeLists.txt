@@ -3,6 +3,9 @@ project(ruvu_carrot_local_planner)
 
 add_compile_options(-std=c++11)
 
+# https://stackoverflow.com/questions/5088460/flags-to-enable-thorough-and-verbose-g-warnings
+add_compile_options(-Wall -Wextra -Wno-ignored-qualifiers -Wcast-align -Wdisabled-optimization -Wformat=2 -Winit-self -Wnoexcept -Wredundant-decls -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=1 -Wswitch-default -Wtype-limits -Werror -Wno-unused)
+
 find_package(catkin REQUIRED COMPONENTS
   base_local_planner
   costmap_2d
