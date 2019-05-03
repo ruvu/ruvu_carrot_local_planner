@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   pluginlib
   roscpp
+  ruvu_lint
   tf
 )
 
@@ -54,3 +55,5 @@ install(TARGETS ruvu_carrot_local_planner
 install(FILES blp_plugin.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+ruvu_lint_add_test()
