@@ -1,3 +1,5 @@
+// Copyright 2019 RUVU BV.
+
 #pragma once
 
 #include <ros/node_handle.h>
@@ -37,4 +39,4 @@ int sgn(T val)
 }
 
 double getSimPeriodParam(ros::NodeHandle private_nh);
-}
+}  // namespace ruvu_carrot_local_planner

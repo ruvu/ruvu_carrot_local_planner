@@ -1,3 +1,5 @@
+// Copyright 2019 RUVU BV.
+
 #pragma once
 
 #include <dynamic_reconfigure/server.h>
@@ -118,4 +120,4 @@ private:
   CarrotPlannerParameters parameters;
   double sim_period_;
 };
-};
+}  // namespace ruvu_carrot_local_planner

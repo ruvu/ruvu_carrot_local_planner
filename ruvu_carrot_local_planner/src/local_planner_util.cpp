@@ -1,4 +1,6 @@
-#include "local_planner_util.h"
+// Copyright 2019 RUVU BV.
+
+#include "./local_planner_util.h"
 
 #include <base_local_planner/goal_functions.h>
 #include "./utils.h"
@@ -31,9 +33,10 @@ bool LocalPlannerUtil::getLocalPlan(tf::Stamped<tf::Pose>& global_pose,
     // Custom path pruning
 
     // Look for the closest point on the path
-    auto closest = min_by(transformed_plan.begin(), transformed_plan.end(), [&](const geometry_msgs::PoseStamped& ps) {
-      return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
-    });
+    auto closest =
+        min_by(transformed_plan.begin(), transformed_plan.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
+          return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
+        });
 
     auto remove_count = closest - transformed_plan.begin();
     pruned_plan_.erase(pruned_plan_.begin(), pruned_plan_.begin() + remove_count);
@@ -44,4 +47,4 @@ bool LocalPlannerUtil::getLocalPlan(tf::Stamped<tf::Pose>& global_pose,
 
   return true;
 }
-}
+}  // namespace ruvu_carrot_local_planner

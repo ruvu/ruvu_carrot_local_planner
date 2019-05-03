@@ -1,3 +1,5 @@
+// Copyright 2019 RUVU BV.
+
 #pragma once
 
 #include <base_local_planner/local_planner_util.h>
@@ -14,4 +16,4 @@ public:
 private:
   std::vector<geometry_msgs::PoseStamped> pruned_plan_;
 };
-}
+}  // namespace ruvu_carrot_local_planner

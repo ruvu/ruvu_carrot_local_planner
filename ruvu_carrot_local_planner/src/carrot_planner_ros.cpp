@@ -1,3 +1,5 @@
+// Copyright 2019 RUVU BV.
+
 #include "./carrot_planner_ros.h"
 
 #include <pluginlib/class_list_macros.h>
@@ -159,7 +161,7 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
                                                      geometry_msgs::Twist& cmd_vel)
 {
   // Look for the closest point on the path
-  auto closest = min_by(path.begin(), path.end(), [&](const geometry_msgs::PoseStamped& ps) {
+  auto closest = min_by(path.begin(), path.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
     return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
   });
   ROS_DEBUG_STREAM_NAMED("ruvu_carrot_local_planner", "closest element at: " << std::distance(path.begin(), closest));
@@ -352,6 +354,6 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
 
 bool CarrotPlannerROS::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples)
 {
-    return true;
+  return true;
 }
-};
+}  // namespace ruvu_carrot_local_planner

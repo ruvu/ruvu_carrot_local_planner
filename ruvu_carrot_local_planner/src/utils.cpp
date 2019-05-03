@@ -1,3 +1,5 @@
+// Copyright 2019 RUVU BV.
+
 #include "./utils.h"
 
 namespace ruvu_carrot_local_planner
@@ -34,4 +36,4 @@ double getSimPeriodParam(ros::NodeHandle private_nh)
 
   return sim_period;
 }
-}
+}  // namespace ruvu_carrot_local_planner
