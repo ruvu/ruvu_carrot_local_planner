@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ros/node_handle.h>
+
 namespace ruvu_carrot_local_planner
 {
 /**
@@ -33,4 +35,6 @@ int sgn(T val)
 {
   return (T(0) < val) - (val < T(0));
 }
+
+double getSimPeriodParam(ros::NodeHandle private_nh);
 }
