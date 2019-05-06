@@ -365,7 +365,7 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
 
 bool CarrotPlannerROS::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples)
 {
-  // TODO: check if the footprint collides with an obstacle
+  // TODO(ramon): check if the footprint collides with an obstacle
   return true;
 }
 }  // namespace ruvu_carrot_local_planner
