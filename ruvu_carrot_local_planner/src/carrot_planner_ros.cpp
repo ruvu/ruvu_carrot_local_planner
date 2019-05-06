@@ -105,6 +105,8 @@ bool CarrotPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped>& or
   // when we get a new plan, we also want to clear any latch we may have on goal tolerances
   latchedStopRotateController_.resetLatching();
 
+  state_ = State::DRIVING;
+
   ROS_INFO_NAMED("ruvu_carrot_local_planner", "Got new plan");
   return planner_util_.setPlan(orig_global_plan);
 }
@@ -124,14 +126,9 @@ bool CarrotPlannerROS::isGoalReached()
     return false;
   }
 
-  if (!latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
-  {
-    return false;
-  }
-
   if (latchedStopRotateController_.isGoalReached(&planner_util_, odom_helper_, current_pose_))
   {
-    ROS_INFO("Goal reached");
+    ROS_INFO_NAMED("ruvu_carrot_local_planner", "Goal reached");
     return true;
   }
   else
@@ -150,6 +147,28 @@ void CarrotPlannerROS::publishGlobalPlan(std::vector<geometry_msgs::PoseStamped>
   base_local_planner::publishPlan(path, g_plan_pub_);
 }
 
+void CarrotPlannerROS::publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot)
+{
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = carrot.frame_id_;
+  marker.header.stamp = carrot.stamp_;
+  marker.ns = "carrot";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::SPHERE;
+  marker.action = visualization_msgs::Marker::ADD;
+  tf::poseTFToMsg(carrot, marker.pose);
+  marker.scale.x = 0.2;
+  marker.scale.y = 0.2;
+  marker.scale.z = 0.2;
+  marker.color.a = 1.0;
+  marker.color.r = 1.0;
+  marker.color.g = 0.5;
+  marker.color.b = 0.0;
+  visualization_msgs::MarkerArray markers;
+  markers.markers = { marker };
+  debug_pub_.publish(markers);
+}
+
 CarrotPlannerROS::~CarrotPlannerROS()
 {
   // make sure to clean things up
@@ -164,41 +183,52 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   auto closest = min_by(path.begin(), path.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
     return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
   });
-  ROS_DEBUG_STREAM_NAMED("ruvu_carrot_local_planner", "closest element at: " << std::distance(path.begin(), closest));
 
-  tf::Stamped<tf::Pose> carrot;
-  double goal_distance;
-  computeCarrot(path, closest, carrot, goal_distance);
-  ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "goal distance: %f", goal_distance);
+  tf::Point goal;
+  tf::pointMsgToTF(path.back().pose.position, goal);
+  auto goal_error = goal - global_pose.getOrigin();
+  double goal_distance = goal_error.length();
 
+  if (goal_distance < parameters.carrot_distance && state_ != State::ARRIVING)
   {
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = global_pose.frame_id_;
-    marker.header.stamp = global_pose.stamp_;
-    marker.ns = "carrot";
-    marker.id = 0;
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    tf::poseTFToMsg(carrot, marker.pose);
-    marker.scale.x = 0.2;
-    marker.scale.y = 0.2;
-    marker.scale.z = 0.2;
-    marker.color.a = 1.0;
-    marker.color.r = 1.0;
-    marker.color.g = 0.5;
-    marker.color.b = 0.0;
-    visualization_msgs::MarkerArray markers;
-    markers.markers = { marker };
-    debug_pub_.publish(markers);
+    ROS_DEBUG_STREAM_NAMED("ruvu_carrot_local_planner", "I'm close to the goal, let's go to the arriving state");
+    state_ = State::ARRIVING;
+    arriving_angle_ = atan2(goal_error.getY(), goal_error.getX());
   }
+
+  tf::Stamped<tf::Pose> carrot(tf::Pose::getIdentity(), global_pose.stamp_, global_pose.frame_id_);
+  switch (state_)
+  {
+    case State::DRIVING:
+      computeCarrot(path, closest, carrot);
+      break;
+    case State::ARRIVING:
+    {
+      // The carrot walks along the arriving angle from the goal
+      auto direction = tf::quatRotate(tf::createQuaternionFromYaw(arriving_angle_),
+                                      tf::Vector3(parameters.carrot_distance - goal_distance, 0, 0));
+      carrot.setOrigin(goal + direction);
+    }
+    break;
+    default:
+      assert(false);
+  }
+
+  publishDebugCarrot(carrot);
 
   nav_msgs::Odometry odom;
   odom_helper_.getOdom(odom);
-
   auto limits = planner_util_.getCurrentLimits();
-  // Don't go faster than the braking distance sqrt(2as)
-  double v_max = sqrt(2 * limits.acc_lim_x * goal_distance);
-  cmd_vel.linear.x = v_max > limits.max_vel_x ? limits.max_vel_x : v_max;
+
+  {
+    // Don't go faster than the braking distance sqrt(2as)
+    double stopping_distance = limits.xy_goal_tolerance * 2;
+    goal_distance = goal_distance > stopping_distance ? goal_distance - stopping_distance : 0;
+    double v_max = sqrt(2 * limits.acc_lim_x * goal_distance);
+    ROS_DEBUG_STREAM_NAMED("ruvu_carrot_local_planner", "v_max: " << v_max);
+    cmd_vel.linear.x = v_max > limits.max_vel_x ? limits.max_vel_x : v_max;
+    cmd_vel.linear.x = cmd_vel.linear.x < limits.min_trans_vel ? limits.min_trans_vel : cmd_vel.linear.x;
+  }
 
   auto error = carrot.getOrigin() - global_pose.getOrigin();
   double angle_to_carrot = atan2(error.getY(), error.getX());
@@ -253,7 +283,7 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
 
 void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
                                      std::vector<geometry_msgs::PoseStamped>::const_iterator it,
-                                     tf::Stamped<tf::Pose>& carrot, double& goal_distance)
+                                     tf::Stamped<tf::Pose>& carrot)
 {
   // Walk along the path forward and count the distance. When carrot_distance has been walked, the carrot is found.
   double distance = parameters.carrot_distance;
@@ -274,27 +304,6 @@ void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStampe
     }
   }
 
-  goal_distance = parameters.carrot_distance - distance;
-
-  if (it == path.end())
-  {
-    // The carrot point is further than path.end(), so let's extrapolate the path
-    // We can't use the orientation of the last point because it could be in a different direction. The point before
-    // that has a almost random orientation in the current global_planner implementation. So let's take the point before
-    // that because it appears to be more stable.
-    if (it - 3 >= path.begin())
-    {
-      tf::poseStampedMsgToTF(*(it - 3), previous);
-    }
-    else
-    {
-      ROS_WARN_NAMED("ruvu_carrot_local_planner", "Can't extrapolate the path properly because it's too short");
-    }
-
-    // Travel `distance` meters in that direction
-    auto direction = tf::quatRotate(previous.getRotation(), tf::Vector3(distance, 0, 0));
-    current.setOrigin(current.getOrigin() + direction);
-  }
   carrot = current;
 }
 
@@ -330,7 +339,7 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
     publishGlobalPlan(transformed_plan);
     publishLocalPlan(local_plan);
-    base_local_planner::LocalPlannerLimits limits = planner_util_.getCurrentLimits();
+    auto limits = planner_util_.getCurrentLimits();
     return latchedStopRotateController_.computeVelocityCommandsStopRotate(
         cmd_vel, limits.getAccLimits(), sim_period_, &planner_util_, odom_helper_, current_pose_,
         boost::bind(&CarrotPlannerROS::checkTrajectory, this, _1, _2, _3));
@@ -340,6 +349,8 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
     bool isOk = carrotComputeVelocityCommands(transformed_plan, current_pose_, cmd_vel);
     if (isOk)
     {
+      ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Computed the following cmd_vel: %.3lf, %.3lf, %.3lf",
+                      cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z);
       publishGlobalPlan(transformed_plan);
     }
     else
@@ -354,6 +365,7 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
 
 bool CarrotPlannerROS::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples)
 {
+  // TODO: check if the footprint collides with an obstacle
   return true;
 }
 }  // namespace ruvu_carrot_local_planner

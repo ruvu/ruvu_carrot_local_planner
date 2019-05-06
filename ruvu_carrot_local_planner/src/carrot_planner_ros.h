@@ -74,10 +74,11 @@ public:
   }
 
 private:
-  /**
-   * @brief Helper function
-   */
-  double getSimPeriodParam(ros::NodeHandle private_nh);
+  enum class State
+  {
+    DRIVING = 1,
+    ARRIVING = 2,
+  } state_ = State::DRIVING;
 
   /**
    * @brief Callback to update the local planner's parameters based on dynamic reconfigure
@@ -88,12 +89,13 @@ private:
 
   void publishGlobalPlan(std::vector<geometry_msgs::PoseStamped>& path);
 
+  void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
+
   bool carrotComputeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
                                      const tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel);
 
   void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
-                     std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot,
-                     double& goal_distance);
+                     std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot);
 
   bool checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples);
 
@@ -119,5 +121,6 @@ private:
 
   CarrotPlannerParameters parameters;
   double sim_period_;
+  double arriving_angle_;
 };
 }  // namespace ruvu_carrot_local_planner
