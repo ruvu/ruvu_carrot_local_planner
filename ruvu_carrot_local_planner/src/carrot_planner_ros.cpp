@@ -191,7 +191,7 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
 
   if (goal_distance < parameters.carrot_distance && state_ != State::ARRIVING)
   {
-    ROS_DEBUG_STREAM_NAMED("ruvu_carrot_local_planner", "I'm close to the goal, let's go to the arriving state");
+    ROS_INFO_NAMED("ruvu_carrot_local_planner", "I'm close to the goal, let's go to the arriving state");
     state_ = State::ARRIVING;
     arriving_angle_ = atan2(goal_error.getY(), goal_error.getX());
   }
@@ -207,9 +207,14 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
       // The carrot walks along the arriving angle from the goal
       auto direction = tf::quatRotate(tf::createQuaternionFromYaw(arriving_angle_),
                                       tf::Vector3(parameters.carrot_distance - goal_distance, 0, 0));
+      if (direction.dot(goal_error) < 0)
+      {
+        ROS_WARN_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "Goal overshoot detected");
+        return false;
+      }
       carrot.setOrigin(goal + direction);
+      break;
     }
-    break;
     default:
       assert(false);
   }
@@ -355,7 +360,7 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
     }
     else
     {
-      ROS_WARN_NAMED("ruvu_carrot_local_planner", "DWA planner failed to produce path.");
+      ROS_WARN_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "Carrot planner failed to produce path.");
       std::vector<geometry_msgs::PoseStamped> empty_plan;
       publishGlobalPlan(empty_plan);
     }
