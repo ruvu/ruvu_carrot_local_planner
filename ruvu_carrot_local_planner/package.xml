@@ -16,7 +16,7 @@
   <depend>costmap_2d</depend>
   <depend>dynamic_reconfigure</depend>
   <depend>eigen</depend>
-  <depend>nav_core</depend>
+  <depend>mbf_costmap_core</depend>
   <depend>nav_msgs</depend>
   <depend>pluginlib</depend>
   <depend>roscpp</depend>
@@ -24,6 +24,6 @@
   <depend>tf</depend>
 
   <export>
-    <nav_core plugin="${prefix}/blp_plugin.xml" />
+    <mbf_costmap_core plugin="${prefix}/plugins.xml" />
   </export>
 </package>

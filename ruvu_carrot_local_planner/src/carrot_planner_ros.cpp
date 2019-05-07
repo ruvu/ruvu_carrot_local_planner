@@ -11,7 +11,7 @@
 #include "./utils.h"
 
 // register this planner as a BaseLocalPlanner plugin
-PLUGINLIB_EXPORT_CLASS(ruvu_carrot_local_planner::CarrotPlannerROS, nav_core::BaseLocalPlanner)
+PLUGINLIB_EXPORT_CLASS(ruvu_carrot_local_planner::CarrotPlannerROS, mbf_costmap_core::CostmapController)
 
 namespace ruvu_carrot_local_planner
 {
@@ -111,7 +111,7 @@ bool CarrotPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped>& or
   return planner_util_.setPlan(orig_global_plan);
 }
 
-bool CarrotPlannerROS::isGoalReached()
+bool CarrotPlannerROS::isGoalReached(double xy_tolerance, double yaw_tolerance)
 {
   if (!isInitialized())
   {
@@ -135,6 +135,11 @@ bool CarrotPlannerROS::isGoalReached()
   {
     return false;
   }
+}
+
+bool CarrotPlannerROS::cancel()
+{
+  return false;
 }
 
 void CarrotPlannerROS::publishLocalPlan(std::vector<geometry_msgs::PoseStamped>& path)
@@ -312,7 +317,9 @@ void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStampe
   carrot = current;
 }
 
-bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
+uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStamped& robot_pose,
+                                                   const geometry_msgs::TwistStamped& robot_velocity,
+                                                   geometry_msgs::TwistStamped& cmd_vel, std::string& message)
 {
   // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
   // enough to goal
@@ -320,22 +327,21 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
   if (!costmap_ros_->getRobotPose(current_pose_))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
-    return false;
+    return 111; // TF_ERROR
   }
   std::vector<geometry_msgs::PoseStamped> transformed_plan;
   if (!planner_util_.getLocalPlan(current_pose_, transformed_plan))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get local plan");
-    return false;
+    return 108; // MISSED_PATH
   }
 
   // If the global plan passed in is empty... we won't do anything
   if (transformed_plan.empty())
   {
     ROS_WARN_NAMED("ruvu_carrot_local_planner", "Received an empty transformed plan.");
-    return false;
+    return 108; // MISSED_PATH
   }
-  ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Received a transformed plan with %zu points.", transformed_plan.size());
 
   if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
   {
@@ -345,17 +351,21 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
     publishGlobalPlan(transformed_plan);
     publishLocalPlan(local_plan);
     auto limits = planner_util_.getCurrentLimits();
-    return latchedStopRotateController_.computeVelocityCommandsStopRotate(
-        cmd_vel, limits.getAccLimits(), sim_period_, &planner_util_, odom_helper_, current_pose_,
-        boost::bind(&CarrotPlannerROS::checkTrajectory, this, _1, _2, _3));
+    if (latchedStopRotateController_.computeVelocityCommandsStopRotate(
+        cmd_vel.twist, limits.getAccLimits(), sim_period_, &planner_util_, odom_helper_, current_pose_,
+        boost::bind(&CarrotPlannerROS::checkTrajectory, this, _1, _2, _3))) {
+        return 0;
+    } else {
+        return 100;
+    }
   }
   else
   {
-    bool isOk = carrotComputeVelocityCommands(transformed_plan, current_pose_, cmd_vel);
+    bool isOk = carrotComputeVelocityCommands(transformed_plan, current_pose_, cmd_vel.twist);
     if (isOk)
     {
       ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Computed the following cmd_vel: %.3lf, %.3lf, %.3lf",
-                      cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z);
+                      cmd_vel.twist.linear.x, cmd_vel.twist.linear.y, cmd_vel.twist.angular.z);
       publishGlobalPlan(transformed_plan);
     }
     else
@@ -364,7 +374,7 @@ bool CarrotPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel)
       std::vector<geometry_msgs::PoseStamped> empty_plan;
       publishGlobalPlan(empty_plan);
     }
-    return isOk;
+    return isOk ? 0 : 100;
   }
 }
 

@@ -10,7 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   base_local_planner
   costmap_2d
   dynamic_reconfigure
-  nav_core
+  mbf_costmap_core
   nav_msgs
   pluginlib
   roscpp
@@ -55,7 +55,7 @@ install(TARGETS ruvu_carrot_local_planner
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
-install(FILES blp_plugin.xml
+install(FILES plugins.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
