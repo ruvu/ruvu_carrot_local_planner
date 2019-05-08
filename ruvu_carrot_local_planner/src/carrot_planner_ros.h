@@ -105,7 +105,8 @@ private:
   void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
 
   bool carrotComputeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
-                                     const tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel);
+                                     const tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel,
+                                     std::string& message);
 
   void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
                      std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot);

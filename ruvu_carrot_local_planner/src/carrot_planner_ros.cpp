@@ -182,7 +182,7 @@ CarrotPlannerROS::~CarrotPlannerROS()
 
 bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
                                                      const tf::Stamped<tf::Pose>& global_pose,
-                                                     geometry_msgs::Twist& cmd_vel)
+                                                     geometry_msgs::Twist& cmd_vel, std::string& message)
 {
   // Look for the closest point on the path
   auto closest = min_by(path.begin(), path.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
@@ -205,16 +205,19 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   switch (state_)
   {
     case State::DRIVING:
+      message = "Driging";
       computeCarrot(path, closest, carrot);
       break;
     case State::ARRIVING:
     {
+      message = "Arriving";
       // The carrot walks along the arriving angle from the goal
       auto direction = tf::quatRotate(tf::createQuaternionFromYaw(arriving_angle_),
                                       tf::Vector3(parameters.carrot_distance - goal_distance, 0, 0));
       if (direction.dot(goal_error) < 0)
       {
-        ROS_WARN_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "Goal overshoot detected");
+        message = "Goal overshoot detected";
+        ROS_WARN_STREAM_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", message);
         return false;
       }
       carrot.setOrigin(goal + direction);
@@ -327,20 +330,20 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   if (!costmap_ros_->getRobotPose(current_pose_))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
-    return 111; // TF_ERROR
+    return 111;  // TF_ERROR
   }
   std::vector<geometry_msgs::PoseStamped> transformed_plan;
   if (!planner_util_.getLocalPlan(current_pose_, transformed_plan))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get local plan");
-    return 108; // MISSED_PATH
+    return 108;  // MISSED_PATH
   }
 
   // If the global plan passed in is empty... we won't do anything
   if (transformed_plan.empty())
   {
     ROS_WARN_NAMED("ruvu_carrot_local_planner", "Received an empty transformed plan.");
-    return 108; // MISSED_PATH
+    return 108;  // MISSED_PATH
   }
 
   if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
@@ -352,16 +355,19 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     publishLocalPlan(local_plan);
     auto limits = planner_util_.getCurrentLimits();
     if (latchedStopRotateController_.computeVelocityCommandsStopRotate(
-        cmd_vel.twist, limits.getAccLimits(), sim_period_, &planner_util_, odom_helper_, current_pose_,
-        boost::bind(&CarrotPlannerROS::checkTrajectory, this, _1, _2, _3))) {
-        return 0;
-    } else {
-        return 100;
+            cmd_vel.twist, limits.getAccLimits(), sim_period_, &planner_util_, odom_helper_, current_pose_,
+            boost::bind(&CarrotPlannerROS::checkTrajectory, this, _1, _2, _3)))
+    {
+      return 0;
+    }
+    else
+    {
+      return 100;
     }
   }
   else
   {
-    bool isOk = carrotComputeVelocityCommands(transformed_plan, current_pose_, cmd_vel.twist);
+    bool isOk = carrotComputeVelocityCommands(transformed_plan, current_pose_, cmd_vel.twist, message);
     if (isOk)
     {
       ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Computed the following cmd_vel: %.3lf, %.3lf, %.3lf",
