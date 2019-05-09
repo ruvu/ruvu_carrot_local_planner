@@ -17,6 +17,7 @@ struct CarrotPlannerParameters
 {
   double carrot_distance;
   double p_angle;
+  double slow_down_margin;
 };
 
 /**
