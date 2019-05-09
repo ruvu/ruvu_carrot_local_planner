@@ -93,6 +93,12 @@ private:
     ARRIVING = 2,
   } state_ = State::DRIVING;
 
+  enum class Outcome
+  {
+    OK = 0,
+    MISSED_GOAL = 107,
+  };
+
   /**
    * @brief Callback to update the local planner's parameters based on dynamic reconfigure
    */
@@ -104,9 +110,9 @@ private:
 
   void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
 
-  bool carrotComputeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
-                                     const tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel,
-                                     std::string& message);
+  Outcome carrotComputeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
+                                        const tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel,
+                                        std::string& message);
 
   void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
                      std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot);

@@ -180,9 +180,9 @@ CarrotPlannerROS::~CarrotPlannerROS()
   delete dsrv_;
 }
 
-bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
-                                                     const tf::Stamped<tf::Pose>& global_pose,
-                                                     geometry_msgs::Twist& cmd_vel, std::string& message)
+CarrotPlannerROS::Outcome CarrotPlannerROS::carrotComputeVelocityCommands(
+    const std::vector<geometry_msgs::PoseStamped>& path, const tf::Stamped<tf::Pose>& global_pose,
+    geometry_msgs::Twist& cmd_vel, std::string& message)
 {
   // Look for the closest point on the path
   auto closest = min_by(path.begin(), path.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
@@ -205,7 +205,7 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
   switch (state_)
   {
     case State::DRIVING:
-      message = "Driging";
+      message = "Driving";
       computeCarrot(path, closest, carrot);
       break;
     case State::ARRIVING:
@@ -218,7 +218,7 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
       {
         message = "Goal overshoot detected";
         ROS_WARN_STREAM_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", message);
-        return false;
+        return Outcome::MISSED_GOAL;
       }
       carrot.setOrigin(goal + direction);
       break;
@@ -291,7 +291,7 @@ bool CarrotPlannerROS::carrotComputeVelocityCommands(const std::vector<geometry_
         odom.twist.twist.angular.z + sgn(cmd_vel.angular.z - odom.twist.twist.angular.z) * max_theta_step;
   }
 
-  return true;
+  return Outcome::OK;
 }
 
 void CarrotPlannerROS::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
@@ -367,20 +367,21 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   }
   else
   {
-    bool isOk = carrotComputeVelocityCommands(transformed_plan, current_pose_, cmd_vel.twist, message);
-    if (isOk)
+    auto outcome = carrotComputeVelocityCommands(transformed_plan, current_pose_, cmd_vel.twist, message);
+    switch (outcome)
     {
-      ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Computed the following cmd_vel: %.3lf, %.3lf, %.3lf",
-                      cmd_vel.twist.linear.x, cmd_vel.twist.linear.y, cmd_vel.twist.angular.z);
-      publishGlobalPlan(transformed_plan);
+      case Outcome::OK:
+        ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Computed the following cmd_vel: %.3lf, %.3lf, %.3lf",
+                        cmd_vel.twist.linear.x, cmd_vel.twist.linear.y, cmd_vel.twist.angular.z);
+        publishGlobalPlan(transformed_plan);
+        break;
+      default:
+        ROS_WARN_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "Carrot planner failed to produce path.");
+        std::vector<geometry_msgs::PoseStamped> empty_plan;
+        publishGlobalPlan(empty_plan);
+        break;
     }
-    else
-    {
-      ROS_WARN_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "Carrot planner failed to produce path.");
-      std::vector<geometry_msgs::PoseStamped> empty_plan;
-      publishGlobalPlan(empty_plan);
-    }
-    return isOk ? 0 : 100;
+    return static_cast<uint32_t>(outcome);
   }
 }
 
