@@ -52,6 +52,7 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   // initialize parameters specific to this module
   parameters.carrot_distance = config.carrot_distance;
   parameters.p_angle = config.p_angle;
+  parameters.slow_down_margin = config.slow_down_margin;
 }
 
 CarrotPlannerROS::CarrotPlannerROS() : odom_helper_("odom")
@@ -234,10 +235,14 @@ CarrotPlannerROS::Outcome CarrotPlannerROS::carrotComputeVelocityCommands(
   auto limits = planner_util_.getCurrentLimits();
 
   {
-    // Don't go faster than the braking distance sqrt(2as)
-    double stopping_distance = limits.xy_goal_tolerance * 2;
-    goal_distance = goal_distance > stopping_distance ? goal_distance - stopping_distance : 0;
-    double v_max = sqrt(2 * limits.acc_lim_x * goal_distance);
+    double a = limits.acc_lim_x;
+    double m = parameters.slow_down_margin;
+
+    double v1 = -a * m - sqrt(a * (a * m * m + 2 * goal_distance));
+    double v2 = -a * m + sqrt(a * (a * m * m + 2 * goal_distance));
+    ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "v1=%f, v2=%f", v1, v2);
+
+    double v_max = v2;
     ROS_DEBUG_STREAM_NAMED("ruvu_carrot_local_planner", "v_max: " << v_max);
     cmd_vel.linear.x = v_max > limits.max_vel_x ? limits.max_vel_x : v_max;
     cmd_vel.linear.x = cmd_vel.linear.x < limits.min_trans_vel ? limits.min_trans_vel : cmd_vel.linear.x;
