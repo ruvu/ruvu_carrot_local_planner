@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   pluginlib
   roscpp
-  ruvu_lint
   tf
 )
 
@@ -60,4 +59,3 @@ install(FILES plugins.xml
 )
 
 set(ROSLINT_CPP_OPTS "--filter=-build/header_guard,-build/include_what_you_use,-whitespace/braces,-runtime/references")
-ruvu_lint_add_test()

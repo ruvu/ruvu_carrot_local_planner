@@ -20,7 +20,6 @@
   <depend>nav_msgs</depend>
   <depend>pluginlib</depend>
   <depend>roscpp</depend>
-  <depend>ruvu_lint</depend>
   <depend>tf</depend>
 
   <export>
