@@ -26,18 +26,29 @@ void CarrotPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_
   state_ = State::DRIVING;
 }
 
-CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
-                                                              const tf::Stamped<tf::Pose>& global_pose,
+void CarrotPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
+                                            const std::vector<geometry_msgs::PoseStamped>& new_plan,
+                                            const std::vector<geometry_msgs::Point>& footprint_spec)
+{
+  global_plan_.resize(new_plan.size());
+  for (unsigned int i = 0; i < new_plan.size(); ++i)
+  {
+    global_plan_[i] = new_plan[i];
+  }
+}
+
+CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<tf::Pose>& global_pose,
                                                               const geometry_msgs::Twist& global_vel,
-                                                              geometry_msgs::Twist& cmd_vel, std::string& message)
+                                                              geometry_msgs::Twist& cmd_vel, std::string& message,
+                                                              base_local_planner::Trajectory& trajectory)
 {
   // Look for the closest point on the path
-  auto closest = min_by(path.begin(), path.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
+  auto closest = min_by(global_plan_.begin(), global_plan_.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
     return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
   });
 
   tf::Point goal;
-  tf::pointMsgToTF(path.back().pose.position, goal);
+  tf::pointMsgToTF(global_plan_.back().pose.position, goal);
   auto goal_error = goal - global_pose.getOrigin();
   double goal_distance = goal_error.length();
 
@@ -53,7 +64,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const std::vector<
   {
     case State::DRIVING:
       message = "Driving";
-      computeCarrot(path, closest, carrot);
+      computeCarrot(global_plan_, closest, carrot);
       break;
     case State::ARRIVING:
     {
@@ -168,6 +179,12 @@ void CarrotPlanner::computeCarrot(const std::vector<geometry_msgs::PoseStamped>&
   }
 
   carrot = current;
+}
+
+bool CarrotPlanner::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples)
+{
+  // TODO(ramon): check if the footprint collides with an obstacle
+  return true;
 }
 
 void CarrotPlanner::publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot)

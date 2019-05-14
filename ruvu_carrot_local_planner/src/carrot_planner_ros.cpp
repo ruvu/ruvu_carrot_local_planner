@@ -52,6 +52,7 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   parameters.carrot_distance = config.carrot_distance;
   parameters.p_angle = config.p_angle;
   parameters.slow_down_margin = config.slow_down_margin;
+
   carrot_planner_->reconfigure(parameters);
 }
 
@@ -174,6 +175,9 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     return 108;  // MISSED_PATH
   }
 
+  // update plan in dwa_planner even if we just stop and rotate, to allow checkTrajectory
+  carrot_planner_->updatePlanAndLocalCosts(current_pose_, transformed_plan, costmap_ros_->getRobotFootprint());
+
   if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
   {
     // Publish an empty plan because we've reached our goal position
@@ -184,7 +188,7 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     auto limits = planner_util_.getCurrentLimits();
     if (latchedStopRotateController_.computeVelocityCommandsStopRotate(
             cmd_vel.twist, limits.getAccLimits(), carrot_planner_->getSimPeriod(), &planner_util_, odom_helper_,
-            current_pose_, boost::bind(&CarrotPlannerROS::checkTrajectory, this, _1, _2, _3)))
+            current_pose_, boost::bind(&CarrotPlanner::checkTrajectory, carrot_planner_.get(), _1, _2, _3)))
     {
       return 0;
     }
@@ -197,13 +201,31 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   {
     nav_msgs::Odometry odom;
     odom_helper_.getOdom(odom);
-    auto outcome = carrot_planner_->computeVelocityCommands(transformed_plan, current_pose_, odom.twist.twist,
-                                                            cmd_vel.twist, message);
+    base_local_planner::Trajectory trajectory;
+    auto outcome =
+        carrot_planner_->computeVelocityCommands(current_pose_, odom.twist.twist, cmd_vel.twist, message, trajectory);
     switch (outcome)
     {
       case CarrotPlanner::Outcome::OK:
         ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Computed the following cmd_vel: %.3lf, %.3lf, %.3lf",
                         cmd_vel.twist.linear.x, cmd_vel.twist.linear.y, cmd_vel.twist.angular.z);
+
+        {
+          std::vector<geometry_msgs::PoseStamped> local_plan;
+          for (unsigned int i = 0; i < trajectory.getPointsSize(); ++i)
+          {
+            double p_x, p_y, p_th;
+            trajectory.getPoint(i, p_x, p_y, p_th);
+
+            tf::Stamped<tf::Pose> p =
+                tf::Stamped<tf::Pose>(tf::Pose(tf::createQuaternionFromYaw(p_th), tf::Point(p_x, p_y, 0.0)),
+                                      ros::Time::now(), costmap_ros_->getGlobalFrameID());
+            geometry_msgs::PoseStamped pose;
+            tf::poseStampedTFToMsg(p, pose);
+            local_plan.push_back(pose);
+          }
+          publishLocalPlan(local_plan);
+        }
         publishGlobalPlan(transformed_plan);
         break;
       default:
@@ -214,11 +236,5 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     }
     return static_cast<uint32_t>(outcome);
   }
-}
-
-bool CarrotPlannerROS::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples)
-{
-  // TODO(ramon): check if the footprint collides with an obstacle
-  return true;
 }
 }  // namespace ruvu_carrot_local_planner
