@@ -14,6 +14,11 @@ CarrotPlanner::CarrotPlanner(ros::NodeHandle private_nh, base_local_planner::Loc
 {
 }
 
+void CarrotPlanner::reconfigure(const Parameters& parameters)
+{
+  parameters_ = parameters;
+}
+
 void CarrotPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan)
 {
   state_ = State::DRIVING;
@@ -80,7 +85,8 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const std::vector<
     ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "v1=%f, v2=%f", v1, v2);
 
     double v_max = v2;
-    ROS_DEBUG_STREAM_NAMED("ruvu_carrot_local_planner", "v_max: " << v_max);
+    ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "v_max=%f v1=%f)", v_max, v1);
+
     cmd_vel.linear.x = v_max > limits.max_vel_x ? limits.max_vel_x : v_max;
     cmd_vel.linear.x = cmd_vel.linear.x < limits.min_trans_vel ? limits.min_trans_vel : cmd_vel.linear.x;
   }
@@ -88,6 +94,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const std::vector<
   auto error = carrot.getOrigin() - global_pose.getOrigin();
   double angle_to_carrot = atan2(error.getY(), error.getX());
   double carrot_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_carrot);
+  ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "carrot_error=%f", carrot_error);
 
   // determine the position of the carrot relative to the closest point
   tf::Point closest_position;

@@ -53,6 +53,7 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   parameters.carrot_distance = config.carrot_distance;
   parameters.p_angle = config.p_angle;
   parameters.slow_down_margin = config.slow_down_margin;
+  carrot_planner_->reconfigure(parameters);
 }
 
 void CarrotPlannerROS::initialize(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros)
