@@ -2,11 +2,8 @@
 
 #pragma once
 
-#include <dynamic_reconfigure/server.h>
 #include <mbf_costmap_core/costmap_controller.h>
 #include <base_local_planner/latched_stop_rotate_controller.h>
-#include <base_local_planner/odometry_helper_ros.h>
-
 #include <ruvu_carrot_local_planner/CarrotPlannerConfig.h>
 
 #include "./local_planner_util.h"

@@ -1,3 +1,5 @@
+// Copyright 2019 RUVU BV.
+
 #include "./carrot_planner.h"
 
 #include <base_local_planner/goal_functions.h>
@@ -189,4 +191,4 @@ void CarrotPlanner::publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot)
   markers.markers = { marker };
   debug_pub_.publish(markers);
 }
-}
+}  // namespace ruvu_carrot_local_planner

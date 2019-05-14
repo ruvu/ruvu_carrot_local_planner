@@ -1,3 +1,5 @@
+// Copyright 2019 RUVU BV.
+
 #pragma once
 
 #include <base_local_planner/local_planner_util.h>
@@ -70,4 +72,4 @@ private:
   double arriving_angle_;
   ros::Publisher debug_pub_;
 };
-}
+}  // namespace ruvu_carrot_local_planner
