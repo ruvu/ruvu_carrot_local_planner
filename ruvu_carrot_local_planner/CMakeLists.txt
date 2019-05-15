@@ -43,6 +43,7 @@ catkin_package(
 
 add_library(ruvu_carrot_local_planner
   src/carrot_planner_ros.cpp src/carrot_planner_ros.h
+  src/carrot_planner.cpp src/carrot_planner.h
   src/local_planner_util.cpp src/local_planner_util.h
   src/utils.cpp src/utils.h
 )

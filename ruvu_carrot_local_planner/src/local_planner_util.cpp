@@ -3,6 +3,7 @@
 #include "./local_planner_util.h"
 
 #include <base_local_planner/goal_functions.h>
+
 #include "./utils.h"
 
 namespace ruvu_carrot_local_planner

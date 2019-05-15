@@ -2,24 +2,15 @@
 
 #pragma once
 
-#include <dynamic_reconfigure/server.h>
 #include <mbf_costmap_core/costmap_controller.h>
 #include <base_local_planner/latched_stop_rotate_controller.h>
-#include <base_local_planner/odometry_helper_ros.h>
-
 #include <ruvu_carrot_local_planner/CarrotPlannerConfig.h>
 
 #include "./local_planner_util.h"
+#include "./carrot_planner.h"
 
 namespace ruvu_carrot_local_planner
 {
-struct CarrotPlannerParameters
-{
-  double carrot_distance;
-  double p_angle;
-  double slow_down_margin;
-};
-
 /**
  * @class CarrotPlannerROS
  * @brief ROS Wrapper for the CarrotPlanner that adheres to the
@@ -29,22 +20,12 @@ class CarrotPlannerROS : public mbf_costmap_core::CostmapController
 {
 public:
   /**
-   * @brief  Constructor for CarrotPlannerROS wrapper
-   */
-  CarrotPlannerROS();
-
-  /**
    * @brief Constructs the local planner
    * @param name The name to give this instance of the local planner
    * @param tf A pointer to a transform listener
    * @param costmap_ros The cost map to use for assigning costs to local plans
    */
   void initialize(std::string name, TF* tf, costmap_2d::Costmap2DROS* costmap_ros) override;
-
-  /**
-   * @brief  Destructor for the wrapper
-   */
-  ~CarrotPlannerROS();
 
   /**
    * @brief Given the current position, orientation, and velocity of the robot,
@@ -88,18 +69,6 @@ public:
   }
 
 private:
-  enum class State
-  {
-    DRIVING = 1,
-    ARRIVING = 2,
-  } state_ = State::DRIVING;
-
-  enum class Outcome
-  {
-    OK = 0,
-    MISSED_GOAL = 107,
-  };
-
   /**
    * @brief Callback to update the local planner's parameters based on dynamic reconfigure
    */
@@ -109,27 +78,20 @@ private:
 
   void publishGlobalPlan(std::vector<geometry_msgs::PoseStamped>& path);
 
-  void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
-
-  Outcome carrotComputeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
-                                        const tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel,
-                                        std::string& message);
-
-  void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
-                     std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot);
-
   bool checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples);
 
   tf::TransformListener* tf_;  ///< @brief Used for transforming point clouds
 
   // for visualisation, publishers of global and local plan
-  ros::Publisher g_plan_pub_, l_plan_pub_, debug_pub_;
+  ros::Publisher g_plan_pub_, l_plan_pub_;
 
   LocalPlannerUtil planner_util_;
 
+  std::unique_ptr<CarrotPlanner> carrot_planner_;
+
   costmap_2d::Costmap2DROS* costmap_ros_;
 
-  dynamic_reconfigure::Server<CarrotPlannerConfig>* dsrv_;
+  std::unique_ptr<dynamic_reconfigure::Server<CarrotPlannerConfig>> dsrv_;
   ruvu_carrot_local_planner::CarrotPlannerConfig default_config_;
   bool setup_ = false;
 
@@ -137,11 +99,7 @@ private:
 
   bool initialized_ = false;
 
-  base_local_planner::OdometryHelperRos odom_helper_;
+  base_local_planner::OdometryHelperRos odom_helper_{ "odom" };
   std::string odom_topic_;
-
-  CarrotPlannerParameters parameters;
-  double sim_period_;
-  double arriving_angle_;
 };
 }  // namespace ruvu_carrot_local_planner
