@@ -1,0 +1,10 @@
+Copyright (c) 2019 RUVU B.V.
+www.ruvu.nl
+
+Permission is hereby granted to any person obtaining a copy of this software and associated documentation files (the "Software"),
+ - to use the software and derivative work for demonstration purposes;
+ - to modify the source code provided that any additions, modifications and/or improvements are provided back to the copyright owner;
+ - to distribute (parts of) the source code as (part of) a commercial product or service under the same license conditions, and provided the copyright owner is explicitly named as the party to provide support and further development.
+
+The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
+In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.
