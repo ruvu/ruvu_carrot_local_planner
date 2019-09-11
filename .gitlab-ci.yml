@@ -29,7 +29,7 @@ stages:
     services:
         - docker:dind
     script:
-        - docker build --pull --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY" --build-arg BASE_IMAGE="ros:$ROS_DISTRO-ros-base" --build-arg WORKSPACE="$CI_PROJECT_NAME" --build-arg PACKAGES="$PACKAGES" --build-arg VERSION="$CI_COMMIT_REF_NAME" -t $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} -f docker/Dockerfile .
+        - docker build --pull --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY" --build-arg BASE_IMAGE="ros:$ROS_DISTRO-ros-base" --build-arg WORKSPACE=common --build-arg PACKAGES="$PACKAGES" --build-arg VERSION="$CI_COMMIT_REF_NAME" -t $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} -f docker/Dockerfile .
         - docker push $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
 
 .build:
@@ -39,7 +39,7 @@ stages:
     services:
         - docker:dind
     script:
-        - docker build --pull --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY" --build-arg BASE_IMAGE="${IMAGE_PATH}/$ROS_DISTRO:latest" --build-arg WORKSPACE="$CI_PROJECT_NAME" --build-arg PACKAGES="$PACKAGES" --build-arg VERSION="$CI_COMMIT_REF_NAME" -t $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} -f docker/Dockerfile .
+        - docker build --pull --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY" --build-arg BASE_IMAGE="${IMAGE_PATH}/$ROS_DISTRO:latest" --build-arg WORKSPACE=common --build-arg PACKAGES="$PACKAGES" --build-arg VERSION="$CI_COMMIT_REF_NAME" -t $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} -f docker/Dockerfile .
         - docker push $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
 
 .test:
