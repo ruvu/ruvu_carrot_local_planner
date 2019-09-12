@@ -62,6 +62,23 @@ stages:
         - docker tag $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} $IMAGE_PATH/$ROS_DISTRO:latest
         - docker push $IMAGE_PATH/$ROS_DISTRO:latest
 
+indigo-build-on-schedule:
+  extends: .build-on-schedule
+  variables:
+    ROS_DISTRO: indigo
+indigo-build:
+  extends: .build
+  variables:
+    ROS_DISTRO: indigo
+indigo-test:
+  extends: .test
+  variables:
+    ROS_DISTRO: indigo
+indigo-release:
+  extends: .release
+  variables:
+    ROS_DISTRO: indigo
+
 kinetic-build-on-schedule:
   extends: .build-on-schedule
   variables:
