@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>turtlebot_carrot_planner</name>
+  <name>turtlebot3_carrot_planner</name>
   <version>0.0.0</version>
   <description>Demonstrates the carrot planner running on a turtlebot in simulation.</description>
 

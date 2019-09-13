@@ -1,0 +1,24 @@
+<!-- inspired by https://github.com/ROBOTIS-GIT/turtlebot3/blob/master/turtlebot3_navigation/launch/move_base.launch -->
+<launch>
+  <!-- Arguments -->
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+
+  <node name="move_base_flex" pkg="mbf_costmap_nav" type="mbf_costmap_nav" required="true" output="screen">
+    <!-- Move base (available planners and misc) -->
+    <rosparam file="$(find turtlebot3_carrot_planner)/param/move_base.yaml" command="load" />
+
+    <!-- Costmaps -->
+    <rosparam file="$(find turtlebot3_navigation)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find turtlebot3_navigation)/param/costmap_common_params_$(arg model).yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find turtlebot3_navigation)/param/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find turtlebot3_navigation)/param/global_costmap_params.yaml" command="load" />
+
+    <!-- Controllers -->
+    <rosparam file="$(find turtlebot3_navigation)/param/dwa_local_planner_params_$(arg model).yaml" command="load" />
+
+    <!-- Planners -->
+    <!-- default for now -->
+  </node>
+
+  <node name="move_base_legacy_relay" pkg="mbf_costmap_nav" type="move_base_legacy_relay.py" />
+</launch>
