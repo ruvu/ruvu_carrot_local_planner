@@ -1,0 +1,34 @@
+# Robot Configuration Parameters
+max_vel_x: 0.22
+min_vel_x: -0.22
+
+max_vel_y: 0.0
+min_vel_y: 0.0
+
+# The velocity when robot is moving in a straight line
+max_trans_vel:  0.22
+min_trans_vel:  0.11
+
+max_rot_vel: 2.75
+min_rot_vel: 1.37
+
+acc_lim_x: 2.5
+acc_lim_y: 0.0
+acc_lim_theta: 3.2
+
+# Carrot planner parameters
+carrot_distance: 0.3
+p_angle: 3
+
+# Goal Tolerance Parametes
+xy_goal_tolerance: 0.05
+yaw_goal_tolerance: 0.17
+latch_xy_goal_tolerance: false
+
+# Forward Simulation Parameters
+sim_time: 1.5
+
+# Occupancy map scaling
+occdist_scale: 0.02
+scaling_speed: 0.25
+max_scaling_factor: 0.2

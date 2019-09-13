@@ -15,9 +15,10 @@
 
     <!-- Controllers -->
     <rosparam file="$(find turtlebot3_navigation)/param/dwa_local_planner_params_$(arg model).yaml" command="load" />
+    <rosparam file="$(find turtlebot3_carrot_planner)/param/carrot_local_planner_params_$(arg model).yaml" command="load" ns="CarrotPlannerROS" />
 
     <!-- Planners -->
-    <!-- default for now -->
+    <rosparam file="$(find turtlebot3_carrot_planner)/param/global_planner_params.yaml" command="load" ns="GlobalPlanner" />
   </node>
 
   <node name="move_base_legacy_relay" pkg="mbf_costmap_nav" type="move_base_legacy_relay.py" />

@@ -1,14 +1,14 @@
 planners:
-  - name: NavfnROS
-    type: navfn/NavfnROS
   - name: GlobalPlanner
     type: global_planner/GlobalPlanner
+  - name: NavfnROS
+    type: navfn/NavfnROS
 
 controllers:
+  - name: CarrotPlannerROS
+    type: ruvu_carrot_local_planner/CarrotPlannerROS
   - name: DWAPlannerROS
     type: dwa_local_planner/DWAPlannerROS
-  - name: carrot_controller
-    type: ruvu_carrot_local_planner/CarrotPlannerROS
 
 controller_frequency: 10.0
 controller_patience: 15.0
