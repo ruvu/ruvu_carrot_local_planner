@@ -17,8 +17,8 @@ acc_lim_y: 0.0
 acc_lim_theta: 3.2
 
 # Carrot planner parameters
-carrot_distance: 0.3
-p_angle: 3
+carrot_distance: 0.2
+p_angle: 1.5
 
 # Goal Tolerance Parametes
 xy_goal_tolerance: 0.05
