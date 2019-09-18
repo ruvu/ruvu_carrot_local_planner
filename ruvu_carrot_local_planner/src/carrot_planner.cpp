@@ -15,6 +15,15 @@ CarrotPlanner::CarrotPlanner(ros::NodeHandle private_nh, base_local_planner::Loc
   , obstacle_costs_(planner_util->getCostmap())
   , debug_pub_(private_nh.advertise<visualization_msgs::MarkerArray>("visualization", 1))
 {
+  // set up all the cost functions that will be applied in order
+  std::vector<base_local_planner::TrajectoryCostFunction*> critics;
+  critics.push_back(&obstacle_costs_);  // discards trajectories that move into obstacles
+
+  // trajectory generators
+  std::vector<base_local_planner::TrajectorySampleGenerator*> generator_list;
+  generator_list.push_back(&generator_);
+
+  scored_sampling_planner_ = base_local_planner::SimpleScoredSamplingPlanner(generator_list, critics);
 }
 
 void CarrotPlanner::reconfigure(const Parameters& parameters)
@@ -22,6 +31,8 @@ void CarrotPlanner::reconfigure(const Parameters& parameters)
   boost::mutex::scoped_lock l(configuration_mutex_);
 
   parameters_ = parameters;
+  generator_.setParameters(parameters.sim_time, parameters.sim_granularity, parameters.angular_sim_granularity,
+                           parameters.use_dwa, sim_period_);
 
   // obstacle costs can vary due to scaling footprint feature
   obstacle_costs_.setScale(parameters.occdist_scale);
@@ -162,7 +173,13 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     cmd_vel.angular.z = global_vel.angular.z + sgn(cmd_vel.angular.z - global_vel.angular.z) * max_theta_step;
   }
 
-  return Outcome::OK;
+  // check if that cmd_vel collides with an obstacle in the future
+  trajectory = simulateVelocity(global_pose, global_vel, cmd_vel);
+
+  if (trajectory.cost_ < 0)
+    return Outcome::BLOCKED_PATH;
+  else
+    return Outcome::OK;
 }
 
 void CarrotPlanner::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
@@ -195,6 +212,28 @@ bool CarrotPlanner::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Ei
 {
   // TODO(ramon): check if the footprint collides with an obstacle
   return true;
+}
+
+base_local_planner::Trajectory CarrotPlanner::simulateVelocity(const tf::Stamped<tf::Pose>& global_pose,
+                                                               const geometry_msgs::Twist& global_vel,
+                                                               geometry_msgs::Twist& cmd_vel)
+{
+  base_local_planner::Trajectory traj;
+  geometry_msgs::PoseStamped goal_pose = global_plan_.back();
+  Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
+  base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
+
+  double yaw = tf::getYaw(global_pose.getRotation());
+  Eigen::Vector3f pos(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw);
+  Eigen::Vector3f vel(global_vel.linear.x, global_vel.linear.y, global_vel.angular.z);
+  Eigen::Vector3f vel_samples(cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z);
+
+  Eigen::Vector3f vsamples(0, 0, 0);
+  generator_.initialise(pos, vel, goal, &limits, vsamples);
+  generator_.generateTrajectory(pos, vel, vel_samples, traj);
+  traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
+
+  return traj;
 }
 
 void CarrotPlanner::publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot)

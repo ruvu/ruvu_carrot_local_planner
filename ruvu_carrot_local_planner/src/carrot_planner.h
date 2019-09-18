@@ -17,9 +17,13 @@ public:
     double carrot_distance;
     double p_angle;
     double slow_down_margin;
+    double sim_time;
+    double sim_granularity;
+    double angular_sim_granularity;
     double occdist_scale;
     double scaling_speed;
     double max_scaling_factor;
+    bool use_dwa;
   };
 
   enum class Outcome : uint32_t
@@ -94,6 +98,10 @@ private:
   void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
                      std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot);
 
+  base_local_planner::Trajectory simulateVelocity(const tf::Stamped<tf::Pose>& global_pose,
+                                                  const geometry_msgs::Twist& global_vel,
+                                                  geometry_msgs::Twist& cmd_vel);
+
   void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
 
   // input to the algorithm
@@ -108,7 +116,9 @@ private:
   // utilities
   boost::mutex configuration_mutex_;
 
+  base_local_planner::SimpleTrajectoryGenerator generator_;
   base_local_planner::ObstacleCostFunction obstacle_costs_;
+  base_local_planner::SimpleScoredSamplingPlanner scored_sampling_planner_;
 
   ros::Publisher debug_pub_;
 };
