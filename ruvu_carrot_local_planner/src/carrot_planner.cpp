@@ -12,13 +12,32 @@ namespace ruvu_carrot_local_planner
 CarrotPlanner::CarrotPlanner(ros::NodeHandle private_nh, base_local_planner::LocalPlannerUtil* planner_util)
   : planner_util_(planner_util)
   , sim_period_(getSimPeriodParam(private_nh))
+  , obstacle_costs_(planner_util->getCostmap())
   , debug_pub_(private_nh.advertise<visualization_msgs::MarkerArray>("visualization", 1))
 {
+  // set up all the cost functions that will be applied in order
+  std::vector<base_local_planner::TrajectoryCostFunction*> critics;
+  critics.push_back(&obstacle_costs_);  // discards trajectories that move into obstacles
+
+  // trajectory generators
+  std::vector<base_local_planner::TrajectorySampleGenerator*> generator_list;
+  generator_list.push_back(&generator_);
+
+  scored_sampling_planner_ = base_local_planner::SimpleScoredSamplingPlanner(generator_list, critics);
 }
 
 void CarrotPlanner::reconfigure(const Parameters& parameters)
 {
+  boost::mutex::scoped_lock l(configuration_mutex_);
+
   parameters_ = parameters;
+  generator_.setParameters(parameters.sim_time, parameters.sim_granularity, parameters.angular_sim_granularity,
+                           parameters.use_dwa, sim_period_);
+
+  // obstacle costs can vary due to scaling footprint feature
+  obstacle_costs_.setScale(parameters.occdist_scale);
+  obstacle_costs_.setParams(planner_util_->getCurrentLimits().max_trans_vel, parameters.max_scaling_factor,
+                            parameters.scaling_speed);
 }
 
 void CarrotPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan)
@@ -26,18 +45,31 @@ void CarrotPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_
   state_ = State::DRIVING;
 }
 
-CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const std::vector<geometry_msgs::PoseStamped>& path,
-                                                              const tf::Stamped<tf::Pose>& global_pose,
+void CarrotPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
+                                            const std::vector<geometry_msgs::PoseStamped>& new_plan,
+                                            const std::vector<geometry_msgs::Point>& footprint_spec)
+{
+  global_plan_.resize(new_plan.size());
+  for (unsigned int i = 0; i < new_plan.size(); ++i)
+  {
+    global_plan_[i] = new_plan[i];
+  }
+
+  obstacle_costs_.setFootprint(footprint_spec);
+}
+
+CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<tf::Pose>& global_pose,
                                                               const geometry_msgs::Twist& global_vel,
-                                                              geometry_msgs::Twist& cmd_vel, std::string& message)
+                                                              geometry_msgs::Twist& cmd_vel, std::string& message,
+                                                              base_local_planner::Trajectory& trajectory)
 {
   // Look for the closest point on the path
-  auto closest = min_by(path.begin(), path.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
+  auto closest = min_by(global_plan_.begin(), global_plan_.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
     return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
   });
 
   tf::Point goal;
-  tf::pointMsgToTF(path.back().pose.position, goal);
+  tf::pointMsgToTF(global_plan_.back().pose.position, goal);
   auto goal_error = goal - global_pose.getOrigin();
   double goal_distance = goal_error.length();
 
@@ -53,7 +85,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const std::vector<
   {
     case State::DRIVING:
       message = "Driving";
-      computeCarrot(path, closest, carrot);
+      computeCarrot(global_plan_, closest, carrot);
       break;
     case State::ARRIVING:
     {
@@ -141,7 +173,13 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const std::vector<
     cmd_vel.angular.z = global_vel.angular.z + sgn(cmd_vel.angular.z - global_vel.angular.z) * max_theta_step;
   }
 
-  return Outcome::OK;
+  // check if that cmd_vel collides with an obstacle in the future
+  trajectory = simulateVelocity(global_pose, global_vel, cmd_vel);
+
+  if (trajectory.cost_ < 0)
+    return Outcome::BLOCKED_PATH;
+  else
+    return Outcome::OK;
 }
 
 void CarrotPlanner::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
@@ -168,6 +206,51 @@ void CarrotPlanner::computeCarrot(const std::vector<geometry_msgs::PoseStamped>&
   }
 
   carrot = current;
+}
+
+bool CarrotPlanner::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples)
+{
+  base_local_planner::Trajectory traj = simulateVelocity(pos, vel, vel_samples);
+
+  // if the trajectory is a legal one... the check passes
+  if (traj.cost_ >= 0)
+  {
+    return true;
+  }
+  ROS_WARN_NAMED("ruvu_carrot_local_planner", "Invalid Trajectory %f, %f, %f, cost: %f", vel_samples[0], vel_samples[1],
+                 vel_samples[2], traj.cost_);
+
+  // otherwise the check fails
+  return false;
+}
+
+base_local_planner::Trajectory CarrotPlanner::simulateVelocity(const tf::Stamped<tf::Pose>& global_pose,
+                                                               const geometry_msgs::Twist& global_vel,
+                                                               geometry_msgs::Twist& cmd_vel)
+{
+  double yaw = tf::getYaw(global_pose.getRotation());
+  Eigen::Vector3f pos(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw);
+  Eigen::Vector3f vel(global_vel.linear.x, global_vel.linear.y, global_vel.angular.z);
+  Eigen::Vector3f vel_samples(cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z);
+
+  return simulateVelocity(pos, vel, vel_samples);
+}
+
+base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f pos, Eigen::Vector3f vel,
+                                                               Eigen::Vector3f vel_samples)
+{
+  geometry_msgs::PoseStamped goal_pose = global_plan_.back();
+  Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
+  base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
+
+  Eigen::Vector3f vsamples(0, 0, 0);
+  generator_.initialise(pos, vel, goal, &limits, vsamples);
+
+  base_local_planner::Trajectory traj;
+  generator_.generateTrajectory(pos, vel, vel_samples, traj);
+  traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
+
+  return traj;
 }
 
 void CarrotPlanner::publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot)
