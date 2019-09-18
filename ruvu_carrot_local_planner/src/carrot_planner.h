@@ -101,6 +101,8 @@ private:
   base_local_planner::Trajectory simulateVelocity(const tf::Stamped<tf::Pose>& global_pose,
                                                   const geometry_msgs::Twist& global_vel,
                                                   geometry_msgs::Twist& cmd_vel);
+  base_local_planner::Trajectory simulateVelocity(Eigen::Vector3f pos, Eigen::Vector3f vel,
+                                                  Eigen::Vector3f vel_samples);
 
   void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
 
