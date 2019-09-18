@@ -62,7 +62,7 @@ public:
    * The alignment cost functions get a version of the global plan
    *   that is modified based on the global_pose
    */
-  void updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
+  void updatePlanAndLocalCosts(const geometry_msgs::PoseStamped& global_pose,
                                const std::vector<geometry_msgs::PoseStamped>& new_plan,
                                const std::vector<geometry_msgs::Point>& footprint_spec);
 

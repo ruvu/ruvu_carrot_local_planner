@@ -5,6 +5,7 @@
 #include <pluginlib/class_list_macros.h>
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
+#include <tf/transform_datatypes.h>
 
 #include "./utils.h"
 
@@ -160,16 +161,8 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
                                                    const geometry_msgs::TwistStamped& robot_velocity,
                                                    geometry_msgs::TwistStamped& cmd_vel, std::string& message)
 {
-  // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
-  // enough to goal
-  tf::Stamped<tf::Pose> current_pose_;
-  if (!costmap_ros_->getRobotPose(current_pose_))
-  {
-    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
-    return 111;  // TF_ERROR
-  }
   std::vector<geometry_msgs::PoseStamped> transformed_plan;
-  if (!planner_util_.getLocalPlan(current_pose_, transformed_plan))
+  if (!planner_util_.getLocalPlan(robot_pose, transformed_plan))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get local plan");
     return 108;  // MISSED_PATH
@@ -183,9 +176,11 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   }
 
   // update plan in dwa_planner even if we just stop and rotate, to allow checkTrajectory
-  carrot_planner_->updatePlanAndLocalCosts(current_pose_, transformed_plan, costmap_ros_->getRobotFootprint());
+  carrot_planner_->updatePlanAndLocalCosts(robot_pose, transformed_plan, costmap_ros_->getRobotFootprint());
 
-  if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
+  tf::Stamped<tf::Pose> robot_pose_tf;
+  tf::poseStampedMsgToTF(robot_pose, robot_pose_tf);
+  if (latchedStopRotateController_.isPositionReached(&planner_util_, robot_pose_tf))
   {
     // Publish an empty plan because we've reached our goal position
     std::vector<geometry_msgs::PoseStamped> local_plan;
@@ -195,7 +190,7 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     auto limits = planner_util_.getCurrentLimits();
     if (latchedStopRotateController_.computeVelocityCommandsStopRotate(
             cmd_vel.twist, limits.getAccLimits(), carrot_planner_->getSimPeriod(), &planner_util_, odom_helper_,
-            current_pose_, boost::bind(&CarrotPlanner::checkTrajectory, carrot_planner_.get(), _1, _2, _3)))
+            robot_pose_tf, boost::bind(&CarrotPlanner::checkTrajectory, carrot_planner_.get(), _1, _2, _3)))
     {
       return 0;
     }
@@ -210,7 +205,7 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     odom_helper_.getOdom(odom);
     base_local_planner::Trajectory trajectory;
     auto outcome =
-        carrot_planner_->computeVelocityCommands(current_pose_, odom.twist.twist, cmd_vel.twist, message, trajectory);
+        carrot_planner_->computeVelocityCommands(robot_pose_tf, odom.twist.twist, cmd_vel.twist, message, trajectory);
     switch (outcome)
     {
       case CarrotPlanner::Outcome::OK:

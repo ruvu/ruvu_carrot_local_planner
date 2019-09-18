@@ -45,7 +45,7 @@ void CarrotPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_
   state_ = State::DRIVING;
 }
 
-void CarrotPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
+void CarrotPlanner::updatePlanAndLocalCosts(const geometry_msgs::PoseStamped& global_pose,
                                             const std::vector<geometry_msgs::PoseStamped>& new_plan,
                                             const std::vector<geometry_msgs::Point>& footprint_spec)
 {

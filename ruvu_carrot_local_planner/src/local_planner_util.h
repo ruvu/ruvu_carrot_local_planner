@@ -11,7 +11,8 @@ class LocalPlannerUtil : public base_local_planner::LocalPlannerUtil
 public:
   void initialize(tf::TransformListener* tf, costmap_2d::Costmap2D* costmap, std::string global_frame);
   bool setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan);
-  bool getLocalPlan(tf::Stamped<tf::Pose>& global_pose, std::vector<geometry_msgs::PoseStamped>& transformed_plan);
+  bool getLocalPlan(const geometry_msgs::PoseStamped& global_pose,
+                    std::vector<geometry_msgs::PoseStamped>& transformed_plan);
 
 private:
   std::vector<geometry_msgs::PoseStamped> pruned_plan_;
