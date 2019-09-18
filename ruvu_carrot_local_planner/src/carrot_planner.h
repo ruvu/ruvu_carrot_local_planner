@@ -4,6 +4,7 @@
 
 #include <base_local_planner/local_planner_util.h>
 #include <base_local_planner/simple_trajectory_generator.h>
+#include <base_local_planner/obstacle_cost_function.h>
 #include <base_local_planner/simple_scored_sampling_planner.h>
 
 namespace ruvu_carrot_local_planner
@@ -16,6 +17,9 @@ public:
     double carrot_distance;
     double p_angle;
     double slow_down_margin;
+    double occdist_scale;
+    double scaling_speed;
+    double max_scaling_factor;
   };
 
   enum class Outcome : uint32_t
@@ -98,7 +102,13 @@ private:
   Parameters parameters_;
   double sim_period_;
 
+  // local state
   double arriving_angle_;
+
+  // utilities
+  boost::mutex configuration_mutex_;
+
+  base_local_planner::ObstacleCostFunction obstacle_costs_;
 
   ros::Publisher debug_pub_;
 };

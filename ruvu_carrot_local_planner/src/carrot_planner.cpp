@@ -12,13 +12,21 @@ namespace ruvu_carrot_local_planner
 CarrotPlanner::CarrotPlanner(ros::NodeHandle private_nh, base_local_planner::LocalPlannerUtil* planner_util)
   : planner_util_(planner_util)
   , sim_period_(getSimPeriodParam(private_nh))
+  , obstacle_costs_(planner_util->getCostmap())
   , debug_pub_(private_nh.advertise<visualization_msgs::MarkerArray>("visualization", 1))
 {
 }
 
 void CarrotPlanner::reconfigure(const Parameters& parameters)
 {
+  boost::mutex::scoped_lock l(configuration_mutex_);
+
   parameters_ = parameters;
+
+  // obstacle costs can vary due to scaling footprint feature
+  obstacle_costs_.setScale(parameters.occdist_scale);
+  obstacle_costs_.setParams(planner_util_->getCurrentLimits().max_trans_vel, parameters.max_scaling_factor,
+                            parameters.scaling_speed);
 }
 
 void CarrotPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan)
@@ -35,6 +43,8 @@ void CarrotPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
   {
     global_plan_[i] = new_plan[i];
   }
+
+  obstacle_costs_.setFootprint(footprint_spec);
 }
 
 CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<tf::Pose>& global_pose,
