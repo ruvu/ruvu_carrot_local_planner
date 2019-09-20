@@ -31,6 +31,7 @@ public:
     OK = 0,
     MISSED_GOAL = 107,
     BLOCKED_PATH = 109,
+    TF_ERROR = 111,
   };
 
   /**

@@ -161,6 +161,13 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
                                                    const geometry_msgs::TwistStamped& robot_velocity,
                                                    geometry_msgs::TwistStamped& cmd_vel, std::string& message)
 {
+  if (costmap_ros_->getGlobalFrameID() != robot_pose.header.frame_id)
+  {
+    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "local costmap frame_id != robot_pose frame_id: %s != %s",
+                    costmap_ros_->getGlobalFrameID().c_str(), robot_pose.header.frame_id.c_str());
+    return static_cast<uint32_t>(CarrotPlanner::Outcome::TF_ERROR);
+  }
+
   std::vector<geometry_msgs::PoseStamped> transformed_plan;
   if (!planner_util_.getLocalPlan(robot_pose, transformed_plan))
   {
