@@ -42,7 +42,7 @@ stages:
     stage: test
     script:
         - docker pull $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
-        - docker run --entrypoint /.ruvu/docker/entrypoint_run_tests.sh $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} catkin_test_results
+        - docker run --rm --entrypoint /.ruvu/docker/entrypoint_run_tests.sh $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} catkin_test_results
 
 .release:
     stage: release
