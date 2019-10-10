@@ -26,8 +26,6 @@ stages:
     stage: build
     only:
         - schedules
-    services:
-        - docker:dind
     script:
         - docker build --pull --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY" --build-arg BASE_IMAGE="ros:$ROS_DISTRO-ros-base" --build-arg WORKSPACE=common --build-arg PACKAGES="$PACKAGES" --build-arg VERSION="$CI_COMMIT_REF_NAME" -t $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} -f docker/Dockerfile .
         - docker push $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
@@ -36,27 +34,21 @@ stages:
     stage: build
     except:
         - schedules
-    services:
-        - docker:dind
     script:
         - docker build --pull --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY" --build-arg BASE_IMAGE="${IMAGE_PATH}/$ROS_DISTRO:latest" --build-arg WORKSPACE=common --build-arg PACKAGES="$PACKAGES" --build-arg VERSION="$CI_COMMIT_REF_NAME" -t $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} -f docker/Dockerfile .
         - docker push $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
 
 .test:
     stage: test
-    services:
-        - docker:dind
     script:
         - docker pull $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
-        - docker run --entrypoint /.ruvu/docker/entrypoint_run_tests.sh $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} catkin_test_results
+        - docker run --rm --entrypoint /.ruvu/docker/entrypoint_run_tests.sh $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} catkin_test_results
 
 .release:
     stage: release
     only:
         refs:
           - master
-    services:
-        - docker:dind
     script:
         - docker pull $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
         - docker tag $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} $IMAGE_PATH/$ROS_DISTRO:latest
