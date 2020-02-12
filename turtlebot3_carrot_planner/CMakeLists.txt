@@ -29,3 +29,12 @@ catkin_package()
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+
+#############
+## Testing ##
+#############
+
+if (CATKIN_ENABLE_TESTING)
+  find_package(ruvu_lint REQUIRED)
+  ruvu_lint_add_test()
+endif()
