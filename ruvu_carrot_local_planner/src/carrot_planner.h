@@ -6,6 +6,7 @@
 #include <base_local_planner/simple_trajectory_generator.h>
 #include <base_local_planner/obstacle_cost_function.h>
 #include <base_local_planner/simple_scored_sampling_planner.h>
+#include <tf/transform_datatypes.h>
 
 namespace ruvu_carrot_local_planner
 {

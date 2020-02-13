@@ -64,14 +64,13 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   carrot_planner_->reconfigure(parameters);
 }
 
-void CarrotPlannerROS::initialize(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros)
+void CarrotPlannerROS::initialize(std::string name, TF* tf, costmap_2d::Costmap2DROS* costmap_ros)
 {
   if (!isInitialized())
   {
     ros::NodeHandle private_nh("~/" + name);
     g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
     l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
-    tf_ = tf;
     costmap_ros_ = costmap_ros;
 
     // make sure to update the costmap we'll use for this cycle
