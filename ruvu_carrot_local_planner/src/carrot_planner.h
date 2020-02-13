@@ -2,11 +2,12 @@
 
 #pragma once
 
-#include <base_local_planner/local_planner_util.h>
 #include <base_local_planner/simple_trajectory_generator.h>
 #include <base_local_planner/obstacle_cost_function.h>
 #include <base_local_planner/simple_scored_sampling_planner.h>
 #include <tf/transform_datatypes.h>
+
+#include "./local_planner_util.h"
 
 namespace ruvu_carrot_local_planner
 {
@@ -41,7 +42,7 @@ public:
    * @param costmap_ros A pointer to the costmap instance the planner should use
    * @param global_frame the frame id of the tf frame to use
    */
-  CarrotPlanner(ros::NodeHandle private_nh, base_local_planner::LocalPlannerUtil* planner_util);
+  CarrotPlanner(ros::NodeHandle private_nh, LocalPlannerUtil* planner_util);
 
   /**
    * @brief Reconfigures the carrot planner
@@ -109,7 +110,7 @@ private:
   void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
 
   // input to the algorithm
-  base_local_planner::LocalPlannerUtil* planner_util_;
+  LocalPlannerUtil* planner_util_;
   std::vector<geometry_msgs::PoseStamped> global_plan_;
   Parameters parameters_;
   double sim_period_;

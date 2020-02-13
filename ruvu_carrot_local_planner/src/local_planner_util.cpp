@@ -9,6 +9,11 @@
 
 namespace ruvu_carrot_local_planner
 {
+void LocalPlannerUtil::reconfigureCB(LocalPlannerLimits& config, bool restore_defaults)
+{
+  auto limits = static_cast<base_local_planner::LocalPlannerLimits>(config);
+  base_local_planner::LocalPlannerUtil::reconfigureCB(limits, restore_defaults);
+}
 void LocalPlannerUtil::initialize(TF* tf, costmap_2d::Costmap2D* costmap, std::string global_frame)
 {
   base_local_planner::LocalPlannerUtil::initialize(tf, costmap, global_frame);
@@ -55,6 +60,11 @@ bool LocalPlannerUtil::getLocalPlan(const geometry_msgs::PoseStamped& global_pos
   }
 
   return true;
+}
+
+LocalPlannerLimits LocalPlannerUtil::getCurrentLimits()
+{
+  return static_cast<LocalPlannerLimits>(base_local_planner::LocalPlannerUtil::getCurrentLimits());
 }
 
 }  // namespace ruvu_carrot_local_planner

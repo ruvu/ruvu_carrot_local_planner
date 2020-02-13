@@ -44,6 +44,7 @@ add_library(ruvu_carrot_local_planner
   src/carrot_planner.cpp src/carrot_planner.h
   src/local_planner_util.cpp src/local_planner_util.h
   src/latched_stop_rotate_controller.cpp src/latched_stop_rotate_controller.h
+  src/local_planner_limits.cpp src/local_planner_limits.h
   src/utils.cpp src/utils.h
 )
 add_dependencies(ruvu_carrot_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
