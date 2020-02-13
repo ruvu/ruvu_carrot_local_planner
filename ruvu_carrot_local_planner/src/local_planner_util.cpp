@@ -3,12 +3,13 @@
 #include "./local_planner_util.h"
 
 #include <base_local_planner/goal_functions.h>
+#include <tf/transform_datatypes.h>
 
 #include "./utils.h"
 
 namespace ruvu_carrot_local_planner
 {
-void LocalPlannerUtil::initialize(tf::TransformListener* tf, costmap_2d::Costmap2D* costmap, std::string global_frame)
+void LocalPlannerUtil::initialize(TF* tf, costmap_2d::Costmap2D* costmap, std::string global_frame)
 {
   base_local_planner::LocalPlannerUtil::initialize(tf, costmap, global_frame);
 }
@@ -25,8 +26,12 @@ bool LocalPlannerUtil::setPlan(const std::vector<geometry_msgs::PoseStamped>& or
 bool LocalPlannerUtil::getLocalPlan(const geometry_msgs::PoseStamped& global_pose,
                                     std::vector<geometry_msgs::PoseStamped>& transformed_plan)
 {
+#ifdef USE_OLD_TF
   tf::Stamped<tf::Pose> gp;
   tf::poseStampedMsgToTF(global_pose, gp);
+#else
+  geometry_msgs::PoseStamped gp = global_pose;
+#endif
 
   if (!base_local_planner::LocalPlannerUtil::getLocalPlan(gp, transformed_plan))
     return false;
