@@ -94,3 +94,20 @@ kinetic-release:
   extends: .release
   variables:
     ROS_DISTRO: kinetic
+
+melodic-build-on-schedule:
+  extends: .build-on-schedule
+  variables:
+    ROS_DISTRO: melodic
+melodic-build:
+  extends: .build
+  variables:
+    ROS_DISTRO: melodic
+melodic-test:
+  extends: .test
+  variables:
+    ROS_DISTRO: melodic
+melodic-release:
+  extends: .release
+  variables:
+    ROS_DISTRO: melodic
