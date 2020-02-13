@@ -59,10 +59,16 @@ indigo-build-on-schedule:
   extends: .build-on-schedule
   variables:
     ROS_DISTRO: indigo
+    # turtlebot3 stack is not released for indigo
+    PACKAGES: >
+      ruvu_carrot_local_planner
 indigo-build:
   extends: .build
   variables:
     ROS_DISTRO: indigo
+    # turtlebot3 stack is not released for indigo
+    PACKAGES: >
+      ruvu_carrot_local_planner
 indigo-test:
   extends: .test
   variables:
