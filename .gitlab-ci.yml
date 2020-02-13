@@ -3,6 +3,7 @@ image: docker:git
 variables:
     PACKAGES: >
         ruvu_carrot_local_planner
+        turtlebot3_carrot_planner
     IMAGE_PATH: registry.gitlab.com/$CI_PROJECT_PATH
 
 before_script:
