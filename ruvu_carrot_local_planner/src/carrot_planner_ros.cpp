@@ -123,7 +123,12 @@ bool CarrotPlannerROS::isGoalReached(double xy_tolerance, double yaw_tolerance)
                                                  "before using this planner");
     return false;
   }
+
+#ifdef USE_OLD_TF
   tf::Stamped<tf::Pose> current_pose_;
+#else
+  geometry_msgs::PoseStamped current_pose_;
+#endif
   if (!costmap_ros_->getRobotPose(current_pose_))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
@@ -186,7 +191,7 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
 
   tf::Stamped<tf::Pose> robot_pose_tf;
   tf::poseStampedMsgToTF(robot_pose, robot_pose_tf);
-  if (latchedStopRotateController_.isPositionReached(&planner_util_, robot_pose_tf))
+  if (latchedStopRotateController_.isPositionReached(&planner_util_, robot_pose))
   {
     // Publish an empty plan because we've reached our goal position
     std::vector<geometry_msgs::PoseStamped> local_plan;
@@ -196,7 +201,7 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     auto limits = planner_util_.getCurrentLimits();
     if (latchedStopRotateController_.computeVelocityCommandsStopRotate(
             cmd_vel.twist, limits.getAccLimits(), carrot_planner_->getSimPeriod(), &planner_util_, odom_helper_,
-            robot_pose_tf, boost::bind(&CarrotPlanner::checkTrajectory, carrot_planner_.get(), _1, _2, _3)))
+            robot_pose, boost::bind(&CarrotPlanner::checkTrajectory, carrot_planner_.get(), _1, _2, _3)))
     {
       return 0;
     }
