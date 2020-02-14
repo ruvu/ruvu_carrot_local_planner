@@ -4,6 +4,8 @@
 
 #include <base_local_planner/goal_functions.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <mbf_utility/navigation_utility.h>
+#include <tf2/utils.h>
 
 #include "./utils.h"
 
@@ -63,10 +65,16 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
                                                               geometry_msgs::Twist& cmd_vel, std::string& message,
                                                               base_local_planner::Trajectory& trajectory)
 {
+#ifdef USE_OLD_TF
+  geometry_msgs::PoseStamped gp;
+  tf::poseStampedTFToMsg(global_pose, gp);
+#else
+  geometry_msgs::PoseStamped gp = global_pose;
+#endif
+
   // Look for the closest point on the path
-  auto closest = min_by(global_plan_.begin(), global_plan_.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
-    return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
-  });
+  auto closest = min_by(global_plan_.begin(), global_plan_.end(),
+                        [&gp](const geometry_msgs::PoseStamped& ps) { return mbf_utility::distance(gp, ps); });
 
   tf::Point goal;
   tf::pointMsgToTF(global_plan_.back().pose.position, goal);
@@ -127,7 +135,9 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
 
   auto error = carrot.getOrigin() - global_pose.getOrigin();
   double angle_to_carrot = atan2(error.getY(), error.getX());
-  double carrot_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_carrot);
+
+  // note, inlined getGoalOrientationAngleDifference because of broken compatability
+  double carrot_error = angles::shortest_angular_distance(tf2::getYaw(gp.pose.orientation), angle_to_carrot);
   ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "carrot_error=%f", carrot_error);
 
   // determine the position of the carrot relative to the closest point
