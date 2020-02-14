@@ -7,6 +7,7 @@
 #include <nav_msgs/Path.h>
 #include <tf/transform_datatypes.h>
 
+#include "./parameter_magic.h"
 #include "./utils.h"
 
 // register this planner as a BaseLocalPlanner plugin
@@ -87,6 +88,14 @@ void CarrotPlannerROS::initialize(std::string name, TF* tf, costmap_2d::Costmap2
     }
 
     initialized_ = true;
+
+    // Warn about deprecated parameters
+    warnRenamedParameter(private_nh, "max_vel_trans", "max_trans_vel");
+    warnRenamedParameter(private_nh, "min_vel_trans", "min_trans_vel");
+    warnRenamedParameter(private_nh, "max_vel_theta", "max_rot_vel");
+    warnRenamedParameter(private_nh, "min_vel_theta", "min_rot_vel");
+    warnRenamedParameter(private_nh, "acc_lim_trans", "acc_limit_trans");
+    warnRenamedParameter(private_nh, "theta_stopped_vel", "rot_stopped_vel");
 
     dsrv_.reset(new dynamic_reconfigure::Server<CarrotPlannerConfig>(private_nh));
     dynamic_reconfigure::Server<CarrotPlannerConfig>::CallbackType cb =
