@@ -7,6 +7,10 @@
 
 namespace ruvu_carrot_local_planner
 {
+/**
+ * This class implements wrapper functions with geometry_msgs::PoseStamped for kinetic to use it more easily with
+ * move_base_flex.
+ */
 class LatchedStopRotateController : public base_local_planner::LatchedStopRotateController
 {
 public:
