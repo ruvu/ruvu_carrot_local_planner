@@ -65,12 +65,8 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
                                                               geometry_msgs::Twist& cmd_vel, std::string& message,
                                                               base_local_planner::Trajectory& trajectory)
 {
-#ifdef USE_OLD_TF
   geometry_msgs::PoseStamped gp;
   tf::poseStampedTFToMsg(global_pose, gp);
-#else
-  geometry_msgs::PoseStamped gp = global_pose;
-#endif
 
   // Look for the closest point on the path
   auto closest = min_by(global_plan_.begin(), global_plan_.end(),
