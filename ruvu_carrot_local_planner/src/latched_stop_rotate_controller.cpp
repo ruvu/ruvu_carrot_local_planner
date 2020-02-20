@@ -34,7 +34,13 @@ bool LatchedStopRotateController::isGoalReached(base_local_planner::LocalPlanner
                                                 base_local_planner::OdometryHelperRos& odom_helper,
                                                 const geometry_msgs::PoseStamped& global_pose)
 {
+#ifdef USE_OLD_TF
+  tf::Stamped<tf::Pose> global_pose_tf;
+  tf::poseStampedMsgToTF(global_pose, global_pose_tf);
+  return impl_->inner_controller_.isGoalReached(planner_util, odom_helper, global_pose_tf);
+#else
   return impl_->inner_controller_.isGoalReached(planner_util, odom_helper, global_pose);
+#endif
 }
 
 bool LatchedStopRotateController::computeVelocityCommandsStopRotate(
