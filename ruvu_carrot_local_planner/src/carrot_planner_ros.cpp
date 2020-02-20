@@ -134,17 +134,25 @@ bool CarrotPlannerROS::isGoalReached(double xy_tolerance, double yaw_tolerance)
   }
 
 #ifdef USE_OLD_TF
-  tf::Stamped<tf::Pose> current_pose_;
+  tf::Stamped<tf::Pose> current_pose;
 #else
-  geometry_msgs::PoseStamped current_pose_;
+  geometry_msgs::PoseStamped current_pose;
 #endif
-  if (!costmap_ros_->getRobotPose(current_pose_))
+
+  if (!costmap_ros_->getRobotPose(current_pose))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
     return false;
   }
 
-  if (latchedStopRotateController_.isGoalReached(&planner_util_, odom_helper_, current_pose_))
+  geometry_msgs::PoseStamped pose;
+#ifdef USE_OLD_TF
+  tf::poseStampedTFToMsg(current_pose, pose);
+#else
+  pose = current_pose;
+#endif
+
+  if (latchedStopRotateController_.isGoalReached(&planner_util_, odom_helper_, pose))
   {
     ROS_INFO_NAMED("ruvu_carrot_local_planner", "Goal reached");
     return true;
