@@ -3,7 +3,6 @@
 #include "./local_planner_util.h"
 
 #include <base_local_planner/goal_functions.h>
-#include <tf/transform_datatypes.h>
 
 #include "./utils.h"
 

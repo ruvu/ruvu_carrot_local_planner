@@ -52,4 +52,4 @@ void warnRenamedParameter(const ros::NodeHandle& nh, const std::string current_n
              current_name.c_str());
   }
 }
-}  // namespace nav_core
+}  // namespace ruvu_carrot_local_planner

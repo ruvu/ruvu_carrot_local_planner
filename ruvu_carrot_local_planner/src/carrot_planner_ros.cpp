@@ -5,7 +5,6 @@
 #include <pluginlib/class_list_macros.h>
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
-#include <tf/transform_datatypes.h>
 
 #include "./parameter_magic.h"
 #include "./utils.h"
@@ -206,8 +205,8 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   // update plan in dwa_planner even if we just stop and rotate, to allow checkTrajectory
   carrot_planner_->updatePlanAndLocalCosts(robot_pose, transformed_plan, costmap_ros_->getRobotFootprint());
 
-  tf::Stamped<tf::Pose> robot_pose_tf;
-  tf::poseStampedMsgToTF(robot_pose, robot_pose_tf);
+  // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
+  // enough to goal
   if (latchedStopRotateController_.isPositionReached(&planner_util_, robot_pose))
   {
     // Publish an empty plan because we've reached our goal position
@@ -229,6 +228,8 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   }
   else
   {
+    tf::Stamped<tf::Pose> robot_pose_tf;
+    tf::poseStampedMsgToTF(robot_pose, robot_pose_tf);
     nav_msgs::Odometry odom;
     odom_helper_.getOdom(odom);
     base_local_planner::Trajectory trajectory;
