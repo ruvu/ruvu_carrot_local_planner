@@ -247,7 +247,7 @@ base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f p
 {
   geometry_msgs::PoseStamped goal_pose = global_plan_.back();
   Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
-  auto limits = static_cast<base_local_planner::LocalPlannerUtil*>(planner_util_)->getCurrentLimits();
+  auto limits = static_cast<base_local_planner::LocalPlannerLimits>(planner_util_->getCurrentLimits());
 
   Eigen::Vector3f vsamples(0, 0, 0);
   generator_.initialise(pos, vel, goal, &limits, vsamples);
