@@ -21,3 +21,5 @@ oscillation_distance: 0.2
 
 shutdown_costmaps: false
 conservative_reset_dist: 3.0
+
+map_frame: odom

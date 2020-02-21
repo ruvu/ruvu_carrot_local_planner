@@ -3,11 +3,11 @@
 #pragma once
 
 #include <mbf_costmap_core/costmap_controller.h>
-#include <base_local_planner/latched_stop_rotate_controller.h>
 #include <ruvu_carrot_local_planner/CarrotPlannerConfig.h>
 
 #include "./local_planner_util.h"
 #include "./carrot_planner.h"
+#include "./latched_stop_rotate_controller.h"
 
 namespace ruvu_carrot_local_planner
 {
@@ -78,8 +78,6 @@ private:
 
   void publishGlobalPlan(std::vector<geometry_msgs::PoseStamped>& path);
 
-  tf::TransformListener* tf_;  ///< @brief Used for transforming point clouds
-
   // for visualisation, publishers of global and local plan
   ros::Publisher g_plan_pub_, l_plan_pub_;
 
@@ -93,7 +91,7 @@ private:
   ruvu_carrot_local_planner::CarrotPlannerConfig default_config_;
   bool setup_ = false;
 
-  base_local_planner::LatchedStopRotateController latchedStopRotateController_;
+  LatchedStopRotateController latchedStopRotateController_;
 
   bool initialized_ = false;
 

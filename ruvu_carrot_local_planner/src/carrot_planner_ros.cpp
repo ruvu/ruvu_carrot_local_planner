@@ -6,6 +6,7 @@
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
 
+#include "./parameter_magic.h"
 #include "./utils.h"
 
 // register this planner as a BaseLocalPlanner plugin
@@ -27,24 +28,24 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   }
 
   // update generic local planner params
-  base_local_planner::LocalPlannerLimits limits;
-  limits.max_trans_vel = config.max_trans_vel;
-  limits.min_trans_vel = config.min_trans_vel;
+  LocalPlannerLimits limits;
+  limits.max_vel_trans = config.max_vel_trans;
+  limits.min_vel_trans = config.min_vel_trans;
   limits.max_vel_x = config.max_vel_x;
   limits.min_vel_x = config.min_vel_x;
   limits.max_vel_y = config.max_vel_y;
   limits.min_vel_y = config.min_vel_y;
-  limits.max_rot_vel = config.max_rot_vel;
-  limits.min_rot_vel = config.min_rot_vel;
+  limits.max_vel_theta = config.max_vel_theta;
+  limits.min_vel_theta = config.min_vel_theta;
   limits.acc_lim_x = config.acc_lim_x;
   limits.acc_lim_y = config.acc_lim_y;
   limits.acc_lim_theta = config.acc_lim_theta;
-  limits.acc_limit_trans = config.acc_limit_trans;
+  limits.acc_lim_trans = config.acc_lim_trans;
   limits.xy_goal_tolerance = config.xy_goal_tolerance;
   limits.yaw_goal_tolerance = config.yaw_goal_tolerance;
   limits.prune_plan = config.prune_plan;
   limits.trans_stopped_vel = config.trans_stopped_vel;
-  limits.rot_stopped_vel = config.rot_stopped_vel;
+  limits.theta_stopped_vel = config.theta_stopped_vel;
   planner_util_.reconfigureCB(limits, config.restore_defaults);
 
   // initialize parameters specific to this module
@@ -63,14 +64,13 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   carrot_planner_->reconfigure(parameters);
 }
 
-void CarrotPlannerROS::initialize(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros)
+void CarrotPlannerROS::initialize(std::string name, TF* tf, costmap_2d::Costmap2DROS* costmap_ros)
 {
   if (!isInitialized())
   {
     ros::NodeHandle private_nh("~/" + name);
     g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
     l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
-    tf_ = tf;
     costmap_ros_ = costmap_ros;
 
     // make sure to update the costmap we'll use for this cycle
@@ -87,6 +87,14 @@ void CarrotPlannerROS::initialize(std::string name, tf::TransformListener* tf, c
     }
 
     initialized_ = true;
+
+    // Warn about deprecated parameters
+    warnRenamedParameter(private_nh, "max_vel_trans", "max_trans_vel");
+    warnRenamedParameter(private_nh, "min_vel_trans", "min_trans_vel");
+    warnRenamedParameter(private_nh, "max_vel_theta", "max_rot_vel");
+    warnRenamedParameter(private_nh, "min_vel_theta", "min_rot_vel");
+    warnRenamedParameter(private_nh, "acc_lim_trans", "acc_limit_trans");
+    warnRenamedParameter(private_nh, "theta_stopped_vel", "rot_stopped_vel");
 
     dsrv_.reset(new dynamic_reconfigure::Server<CarrotPlannerConfig>(private_nh));
     dynamic_reconfigure::Server<CarrotPlannerConfig>::CallbackType cb =
@@ -123,14 +131,27 @@ bool CarrotPlannerROS::isGoalReached(double xy_tolerance, double yaw_tolerance)
                                                  "before using this planner");
     return false;
   }
-  tf::Stamped<tf::Pose> current_pose_;
-  if (!costmap_ros_->getRobotPose(current_pose_))
+
+#ifdef USE_OLD_TF
+  tf::Stamped<tf::Pose> current_pose;
+#else
+  geometry_msgs::PoseStamped current_pose;
+#endif
+
+  if (!costmap_ros_->getRobotPose(current_pose))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
     return false;
   }
 
-  if (latchedStopRotateController_.isGoalReached(&planner_util_, odom_helper_, current_pose_))
+  geometry_msgs::PoseStamped pose;
+#ifdef USE_OLD_TF
+  tf::poseStampedTFToMsg(current_pose, pose);
+#else
+  pose = current_pose;
+#endif
+
+  if (latchedStopRotateController_.isGoalReached(&planner_util_, odom_helper_, pose))
   {
     ROS_INFO_NAMED("ruvu_carrot_local_planner", "Goal reached");
     return true;
@@ -160,16 +181,15 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
                                                    const geometry_msgs::TwistStamped& robot_velocity,
                                                    geometry_msgs::TwistStamped& cmd_vel, std::string& message)
 {
-  // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
-  // enough to goal
-  tf::Stamped<tf::Pose> current_pose_;
-  if (!costmap_ros_->getRobotPose(current_pose_))
+  if (costmap_ros_->getGlobalFrameID() != robot_pose.header.frame_id)
   {
-    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get robot pose");
-    return 111;  // TF_ERROR
+    ROS_ERROR_NAMED("ruvu_carrot_local_planner", "local costmap frame_id != robot_pose frame_id: %s != %s",
+                    costmap_ros_->getGlobalFrameID().c_str(), robot_pose.header.frame_id.c_str());
+    return static_cast<uint32_t>(CarrotPlanner::Outcome::TF_ERROR);
   }
+
   std::vector<geometry_msgs::PoseStamped> transformed_plan;
-  if (!planner_util_.getLocalPlan(current_pose_, transformed_plan))
+  if (!planner_util_.getLocalPlan(robot_pose, transformed_plan))
   {
     ROS_ERROR_NAMED("ruvu_carrot_local_planner", "Could not get local plan");
     return 108;  // MISSED_PATH
@@ -183,9 +203,11 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   }
 
   // update plan in dwa_planner even if we just stop and rotate, to allow checkTrajectory
-  carrot_planner_->updatePlanAndLocalCosts(current_pose_, transformed_plan, costmap_ros_->getRobotFootprint());
+  carrot_planner_->updatePlanAndLocalCosts(robot_pose, transformed_plan, costmap_ros_->getRobotFootprint());
 
-  if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_))
+  // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
+  // enough to goal
+  if (latchedStopRotateController_.isPositionReached(&planner_util_, robot_pose))
   {
     // Publish an empty plan because we've reached our goal position
     std::vector<geometry_msgs::PoseStamped> local_plan;
@@ -195,7 +217,7 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     auto limits = planner_util_.getCurrentLimits();
     if (latchedStopRotateController_.computeVelocityCommandsStopRotate(
             cmd_vel.twist, limits.getAccLimits(), carrot_planner_->getSimPeriod(), &planner_util_, odom_helper_,
-            current_pose_, boost::bind(&CarrotPlanner::checkTrajectory, carrot_planner_.get(), _1, _2, _3)))
+            robot_pose, boost::bind(&CarrotPlanner::checkTrajectory, carrot_planner_.get(), _1, _2, _3)))
     {
       return 0;
     }
@@ -206,11 +228,13 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   }
   else
   {
+    tf::Stamped<tf::Pose> robot_pose_tf;
+    tf::poseStampedMsgToTF(robot_pose, robot_pose_tf);
     nav_msgs::Odometry odom;
     odom_helper_.getOdom(odom);
     base_local_planner::Trajectory trajectory;
     auto outcome =
-        carrot_planner_->computeVelocityCommands(current_pose_, odom.twist.twist, cmd_vel.twist, message, trajectory);
+        carrot_planner_->computeVelocityCommands(robot_pose_tf, odom.twist.twist, cmd_vel.twist, message, trajectory);
     switch (outcome)
     {
       case CarrotPlanner::Outcome::OK:

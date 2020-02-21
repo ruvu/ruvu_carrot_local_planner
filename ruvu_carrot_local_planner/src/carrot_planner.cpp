@@ -4,12 +4,14 @@
 
 #include <base_local_planner/goal_functions.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <mbf_utility/navigation_utility.h>
+#include <tf2/utils.h>
 
 #include "./utils.h"
 
 namespace ruvu_carrot_local_planner
 {
-CarrotPlanner::CarrotPlanner(ros::NodeHandle private_nh, base_local_planner::LocalPlannerUtil* planner_util)
+CarrotPlanner::CarrotPlanner(ros::NodeHandle private_nh, LocalPlannerUtil* planner_util)
   : planner_util_(planner_util)
   , sim_period_(getSimPeriodParam(private_nh))
   , obstacle_costs_(planner_util->getCostmap())
@@ -36,7 +38,7 @@ void CarrotPlanner::reconfigure(const Parameters& parameters)
 
   // obstacle costs can vary due to scaling footprint feature
   obstacle_costs_.setScale(parameters.occdist_scale);
-  obstacle_costs_.setParams(planner_util_->getCurrentLimits().max_trans_vel, parameters.max_scaling_factor,
+  obstacle_costs_.setParams(planner_util_->getCurrentLimits().max_vel_trans, parameters.max_scaling_factor,
                             parameters.scaling_speed);
 }
 
@@ -45,7 +47,7 @@ void CarrotPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_
   state_ = State::DRIVING;
 }
 
-void CarrotPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
+void CarrotPlanner::updatePlanAndLocalCosts(const geometry_msgs::PoseStamped& global_pose,
                                             const std::vector<geometry_msgs::PoseStamped>& new_plan,
                                             const std::vector<geometry_msgs::Point>& footprint_spec)
 {
@@ -63,10 +65,12 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
                                                               geometry_msgs::Twist& cmd_vel, std::string& message,
                                                               base_local_planner::Trajectory& trajectory)
 {
+  geometry_msgs::PoseStamped gp;
+  tf::poseStampedTFToMsg(global_pose, gp);
+
   // Look for the closest point on the path
-  auto closest = min_by(global_plan_.begin(), global_plan_.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
-    return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
-  });
+  auto closest = min_by(global_plan_.begin(), global_plan_.end(),
+                        [&gp](const geometry_msgs::PoseStamped& ps) { return mbf_utility::distance(gp, ps); });
 
   tf::Point goal;
   tf::pointMsgToTF(global_plan_.back().pose.position, goal);
@@ -122,12 +126,14 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "v_max=%f v1=%f)", v_max, v1);
 
     cmd_vel.linear.x = v_max > limits.max_vel_x ? limits.max_vel_x : v_max;
-    cmd_vel.linear.x = cmd_vel.linear.x < limits.min_trans_vel ? limits.min_trans_vel : cmd_vel.linear.x;
+    cmd_vel.linear.x = cmd_vel.linear.x < limits.min_vel_trans ? limits.min_vel_trans : cmd_vel.linear.x;
   }
 
   auto error = carrot.getOrigin() - global_pose.getOrigin();
   double angle_to_carrot = atan2(error.getY(), error.getX());
-  double carrot_error = base_local_planner::getGoalOrientationAngleDifference(global_pose, angle_to_carrot);
+
+  // note, inlined getGoalOrientationAngleDifference because of broken compatability
+  double carrot_error = angles::shortest_angular_distance(tf2::getYaw(gp.pose.orientation), angle_to_carrot);
   ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "carrot_error=%f", carrot_error);
 
   // determine the position of the carrot relative to the closest point
@@ -155,10 +161,10 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
   }
 
   // If we rotate faster than possible, scale back the both velocities
-  if (fabs(cmd_vel.angular.z) > limits.max_rot_vel)
+  if (fabs(cmd_vel.angular.z) > limits.max_vel_theta)
   {
-    cmd_vel.linear.x = cmd_vel.linear.x * limits.max_rot_vel / fabs(cmd_vel.angular.z);
-    cmd_vel.angular.z = cmd_vel.angular.z * limits.max_rot_vel / fabs(cmd_vel.angular.z);
+    cmd_vel.linear.x = cmd_vel.linear.x * limits.max_vel_theta / fabs(cmd_vel.angular.z);
+    cmd_vel.angular.z = cmd_vel.angular.z * limits.max_vel_theta / fabs(cmd_vel.angular.z);
   }
 
   // Smooth the required velocity with the maximum acceleration
@@ -241,7 +247,7 @@ base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f p
 {
   geometry_msgs::PoseStamped goal_pose = global_plan_.back();
   Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
-  base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
+  auto limits = static_cast<base_local_planner::LocalPlannerLimits>(planner_util_->getCurrentLimits());
 
   Eigen::Vector3f vsamples(0, 0, 0);
   generator_.initialise(pos, vel, goal, &limits, vsamples);

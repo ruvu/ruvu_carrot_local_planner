@@ -18,12 +18,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Eigen3 REQUIRED)
-find_package(PCL REQUIRED)
 remove_definitions(-DDISABLE_LIBUSB-1.0)
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}
 )
 add_definitions(${EIGEN3_DEFINITIONS})
 
@@ -45,7 +43,10 @@ add_library(ruvu_carrot_local_planner
   src/carrot_planner_ros.cpp src/carrot_planner_ros.h
   src/carrot_planner.cpp src/carrot_planner.h
   src/local_planner_util.cpp src/local_planner_util.h
+  src/latched_stop_rotate_controller.cpp src/latched_stop_rotate_controller.h
+  src/local_planner_limits.cpp src/local_planner_limits.h
   src/utils.cpp src/utils.h
+  src/parameter_magic.h
 )
 add_dependencies(ruvu_carrot_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(ruvu_carrot_local_planner ${catkin_LIBRARIES})

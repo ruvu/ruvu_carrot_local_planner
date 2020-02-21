@@ -8,7 +8,12 @@
 
 namespace ruvu_carrot_local_planner
 {
-void LocalPlannerUtil::initialize(tf::TransformListener* tf, costmap_2d::Costmap2D* costmap, std::string global_frame)
+void LocalPlannerUtil::reconfigureCB(LocalPlannerLimits& config, bool restore_defaults)
+{
+  auto limits = static_cast<base_local_planner::LocalPlannerLimits>(config);
+  base_local_planner::LocalPlannerUtil::reconfigureCB(limits, restore_defaults);
+}
+void LocalPlannerUtil::initialize(TF* tf, costmap_2d::Costmap2D* costmap, std::string global_frame)
 {
   base_local_planner::LocalPlannerUtil::initialize(tf, costmap, global_frame);
 }
@@ -22,10 +27,17 @@ bool LocalPlannerUtil::setPlan(const std::vector<geometry_msgs::PoseStamped>& or
   return true;
 }
 
-bool LocalPlannerUtil::getLocalPlan(tf::Stamped<tf::Pose>& global_pose,
+bool LocalPlannerUtil::getLocalPlan(const geometry_msgs::PoseStamped& global_pose,
                                     std::vector<geometry_msgs::PoseStamped>& transformed_plan)
 {
-  if (!base_local_planner::LocalPlannerUtil::getLocalPlan(global_pose, transformed_plan))
+#ifdef USE_OLD_TF
+  tf::Stamped<tf::Pose> gp;
+  tf::poseStampedMsgToTF(global_pose, gp);
+#else
+  geometry_msgs::PoseStamped gp = global_pose;
+#endif
+
+  if (!base_local_planner::LocalPlannerUtil::getLocalPlan(gp, transformed_plan))
     return false;
 
   // now we'll prune the plan based on the position of the robot
@@ -35,8 +47,8 @@ bool LocalPlannerUtil::getLocalPlan(tf::Stamped<tf::Pose>& global_pose,
 
     // Look for the closest point on the path
     auto closest =
-        min_by(transformed_plan.begin(), transformed_plan.end(), [&global_pose](const geometry_msgs::PoseStamped& ps) {
-          return base_local_planner::getGoalPositionDistance(global_pose, ps.pose.position.x, ps.pose.position.y);
+        min_by(transformed_plan.begin(), transformed_plan.end(), [&gp](const geometry_msgs::PoseStamped& ps) {
+          return base_local_planner::getGoalPositionDistance(gp, ps.pose.position.x, ps.pose.position.y);
         });
 
     auto remove_count = closest - transformed_plan.begin();
@@ -48,4 +60,10 @@ bool LocalPlannerUtil::getLocalPlan(tf::Stamped<tf::Pose>& global_pose,
 
   return true;
 }
+
+LocalPlannerLimits LocalPlannerUtil::getCurrentLimits()
+{
+  return static_cast<LocalPlannerLimits>(base_local_planner::LocalPlannerUtil::getCurrentLimits());
+}
+
 }  // namespace ruvu_carrot_local_planner
