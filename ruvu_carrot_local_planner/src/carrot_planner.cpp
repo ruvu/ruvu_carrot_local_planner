@@ -124,9 +124,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
 
     double v_max = v2;
     ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "v_max=%f v1=%f)", v_max, v1);
-
-    cmd_vel.linear.x = v_max > limits.max_vel_x ? limits.max_vel_x : v_max;
-    cmd_vel.linear.x = cmd_vel.linear.x < limits.min_vel_trans ? limits.min_vel_trans : cmd_vel.linear.x;
+    cmd_vel.linear.x = v_max;
   }
 
   auto error = carrot.getOrigin() - global_pose.getOrigin();
@@ -159,6 +157,10 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
   {
     cmd_vel.linear.x = -cmd_vel.linear.x;
   }
+
+  // Apply limits to forward velocity
+  cmd_vel.linear.x = std::max(std::min(cmd_vel.linear.x, limits.max_vel_x), limits.min_vel_x);
+  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans : cmd_vel.linear.x;
 
   // If we rotate faster than possible, scale back the both velocities
   if (fabs(cmd_vel.angular.z) > limits.max_vel_theta)
