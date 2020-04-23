@@ -36,9 +36,4 @@ double getSimPeriodParam(ros::NodeHandle private_nh)
 
   return sim_period;
 }
-
-int sgn(double v)
-{
-  return (v > 0) - (v < 0);
-}
 }  // namespace ruvu_carrot_local_planner
