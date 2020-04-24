@@ -162,10 +162,15 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
   cmd_vel.linear.x = std::max(std::min(cmd_vel.linear.x, limits.max_vel_x), limits.min_vel_x);
   cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans : cmd_vel.linear.x;
 
-  // If we rotate faster than possible, scale back the both velocities
+  // Scale back the forward velocity when turning faster
+  {
+    double brake_factor = 1 - fabs(cmd_vel.angular.z / limits.max_vel_theta);
+    brake_factor = brake_factor < 0 ? 0 : brake_factor;
+    cmd_vel.linear.x *= brake_factor;
+  }
+
   if (fabs(cmd_vel.angular.z) > limits.max_vel_theta)
   {
-    cmd_vel.linear.x = cmd_vel.linear.x * limits.max_vel_theta / fabs(cmd_vel.angular.z);
     cmd_vel.angular.z = cmd_vel.angular.z * limits.max_vel_theta / fabs(cmd_vel.angular.z);
   }
 
