@@ -158,10 +158,6 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     cmd_vel.linear.x = -cmd_vel.linear.x;
   }
 
-  // Apply limits to forward velocity
-  cmd_vel.linear.x = std::max(std::min(cmd_vel.linear.x, limits.max_vel_x), limits.min_vel_x);
-  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans : cmd_vel.linear.x;
-
   // Scale back the forward velocity when turning faster
   {
     double brake_factor = 1 - fabs(cmd_vel.angular.z / limits.max_vel_theta);
@@ -185,6 +181,10 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
   {
     cmd_vel.angular.z = global_vel.angular.z + sgn(cmd_vel.angular.z - global_vel.angular.z) * max_theta_step;
   }
+
+  // Apply limits to forward velocity
+  cmd_vel.linear.x = std::max(std::min(cmd_vel.linear.x, limits.max_vel_x), limits.min_vel_x);
+  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans : cmd_vel.linear.x;
 
   // check if that cmd_vel collides with an obstacle in the future
   trajectory = simulateVelocity(global_pose, global_vel, cmd_vel);
