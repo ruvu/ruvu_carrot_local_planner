@@ -260,8 +260,8 @@ base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f p
   generator_.initialise(pos, vel, goal, &limits, vsamples);
 
   base_local_planner::Trajectory traj;
-  generator_.generateTrajectory(pos, vel, vel_samples, traj);
-  traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
+  if (generator_.generateTrajectory(pos, vel, vel_samples, traj))
+    traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
 
   return traj;
 }
