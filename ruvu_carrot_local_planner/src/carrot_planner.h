@@ -21,6 +21,7 @@ public:
     double slow_down_margin;
     double sim_time;
     double sim_granularity;
+    double discretize_by_time;
     double angular_sim_granularity;
     double occdist_scale;
     double scaling_speed;

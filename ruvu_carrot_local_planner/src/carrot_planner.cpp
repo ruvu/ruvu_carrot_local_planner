@@ -257,7 +257,7 @@ base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f p
   auto limits = static_cast<base_local_planner::LocalPlannerLimits>(planner_util_->getCurrentLimits());
 
   Eigen::Vector3f vsamples(0, 0, 0);
-  generator_.initialise(pos, vel, goal, &limits, vsamples);
+  generator_.initialise(pos, vel, goal, &limits, vsamples, parameters_.discretize_by_time);
 
   base_local_planner::Trajectory traj;
 

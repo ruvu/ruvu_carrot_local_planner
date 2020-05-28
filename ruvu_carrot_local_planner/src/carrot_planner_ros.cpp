@@ -55,6 +55,7 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   parameters.slow_down_margin = config.slow_down_margin;
   parameters.sim_time = config.sim_time;
   parameters.sim_granularity = config.sim_granularity;
+  parameters.discretize_by_time = config.discretize_by_time;
   parameters.angular_sim_granularity = config.angular_sim_granularity;
   parameters.occdist_scale = config.occdist_scale;
   parameters.scaling_speed = config.scaling_speed;

@@ -32,3 +32,9 @@ When the lookahead point reaches the end of the path, the robot switches into th
 1. The robot uses the last two points on the path to determine a line along the curvature of the path. The lookahead point travels along this line.
 2. The robot draws a line between the current position and the last point, saves this angle. The lookahead point travels along this line.
 ![alt text](doc/stopping.png "Stopping options")
+
+### Collision avoidance
+The robot pose is simulated ahead for `sim_time` seconds, assuming the current target velocity and footprint. When the footprint is infringed for this trajectory, a stationary command velocity is send.
+
+If the robot does slow down but then creeps through obstacles, try setting `discretize_by_time` to `true`.
+
