@@ -260,6 +260,15 @@ base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f p
   generator_.initialise(pos, vel, goal, &limits, vsamples);
 
   base_local_planner::Trajectory traj;
+
+  // sim_time == 0 is a feature to disable collision checking
+  if (parameters_.sim_time == 0)
+  {
+    traj.cost_ = 0;
+    traj.resetPoints();
+    return traj;
+  }
+
   if (generator_.generateTrajectory(pos, vel, vel_samples, traj))
     traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
   else
