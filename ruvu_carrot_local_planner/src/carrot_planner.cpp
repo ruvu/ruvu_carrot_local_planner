@@ -262,6 +262,8 @@ base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f p
   base_local_planner::Trajectory traj;
   if (generator_.generateTrajectory(pos, vel, vel_samples, traj))
     traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
+  else
+    ROS_WARN_STREAM_NAMED("ruvu_carrot_local_planner", "Carot controller generated an invalid trajectory");
 
   return traj;
 }
