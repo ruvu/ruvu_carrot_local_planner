@@ -158,10 +158,6 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     cmd_vel.linear.x = -cmd_vel.linear.x;
   }
 
-  // Apply limits to forward velocity
-  cmd_vel.linear.x = std::max(std::min(cmd_vel.linear.x, limits.max_vel_x), limits.min_vel_x);
-  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans : cmd_vel.linear.x;
-
   // Scale back the forward velocity when turning faster
   {
     double brake_factor = 1 - fabs(cmd_vel.angular.z / limits.max_vel_theta);
@@ -185,6 +181,10 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
   {
     cmd_vel.angular.z = global_vel.angular.z + sgn(cmd_vel.angular.z - global_vel.angular.z) * max_theta_step;
   }
+
+  // Apply limits to forward velocity
+  cmd_vel.linear.x = std::max(std::min(cmd_vel.linear.x, limits.max_vel_x), limits.min_vel_x);
+  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans : cmd_vel.linear.x;
 
   // check if that cmd_vel collides with an obstacle in the future
   trajectory = simulateVelocity(global_pose, global_vel, cmd_vel);
@@ -260,8 +260,19 @@ base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f p
   generator_.initialise(pos, vel, goal, &limits, vsamples);
 
   base_local_planner::Trajectory traj;
-  generator_.generateTrajectory(pos, vel, vel_samples, traj);
-  traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
+
+  // sim_time == 0 is a feature to disable collision checking
+  if (parameters_.sim_time == 0)
+  {
+    traj.cost_ = 0;
+    traj.resetPoints();
+    return traj;
+  }
+
+  if (generator_.generateTrajectory(pos, vel, vel_samples, traj))
+    traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
+  else
+    ROS_WARN_STREAM_NAMED("ruvu_carrot_local_planner", "Carot controller generated an invalid trajectory");
 
   return traj;
 }
