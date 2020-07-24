@@ -25,7 +25,7 @@ The robot will move in place until the error is small enough, and then start dri
 ![bla](./doc/alignment_state.svg)
 
 ### Braking at the end of the path
-The braking algorithm is explained in [./doc/slow_down_margin.ipynb]. It is based on a braking distance calculation.
+The braking algorithm is explained in [slow_down_margin.ipynb](./doc/slow_down_margin.ipynb). It is based on a braking distance calculation.
 
 ### Stopping
 When the lookahead point reaches the end of the path, the robot switches into the end-of-path mode. There are two options:
