@@ -170,9 +170,11 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     cmd_vel.angular.z = cmd_vel.angular.z * limits.max_vel_theta / fabs(cmd_vel.angular.z);
   }
 
-  // Apply min_vel_x, min_vel_x and min_vel_x limits
+  // Apply motion limits
   cmd_vel.linear.x = std::max(std::min(cmd_vel.linear.x, limits.max_vel_x), limits.min_vel_x);
   cmd_vel.linear.x = std::min(cmd_vel.linear.x, limits.max_vel_trans);
+  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans :
+                                                                         cmd_vel.linear.x;
 
   // Smooth the required velocity with the maximum acceleration
   double max_x_step = limits.acc_lim_x * sim_period_;
@@ -186,15 +188,26 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     cmd_vel.angular.z = global_vel.angular.z + sgn(cmd_vel.angular.z - global_vel.angular.z) * max_theta_step;
   }
 
-  // Apply min_vel_trans limit
-  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans :
-                                                                         cmd_vel.linear.x;
-
   // check if that cmd_vel collides with an obstacle in the future
   trajectory = simulateVelocity(global_pose, global_vel, cmd_vel);
 
   if (trajectory.cost_ < 0)
+  {
+    // Break while keeping the steering radius constant
+    // To do this, first figure out if max_x_step or max_theta_step is the slowest way to break. Then apply that as a
+    // percentage step in the other axis.
+    if (max_x_step / global_vel.linear.x < max_theta_step / global_vel.angular.z)
+    {
+      cmd_vel.linear.x = global_vel.linear.x - max_x_step;
+      cmd_vel.angular.z = global_vel.linear.z * (1 - max_x_step / global_vel.linear.x);
+    }
+    else
+    {
+      cmd_vel.linear.x = global_vel.linear.x * (1 - max_theta_step / global_vel.angular.z);
+      cmd_vel.angular.z = global_vel.linear.z - max_theta_step;
+    }
     return Outcome::BLOCKED_PATH;
+  }
   else
     return Outcome::OK;
 }
