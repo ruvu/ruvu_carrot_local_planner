@@ -31,6 +31,7 @@ public:
   enum class Outcome : uint32_t
   {
     OK = 0,
+    BRAKING = 1,  // plugin specific non-error result
     MISSED_GOAL = 107,
     BLOCKED_PATH = 109,
     TF_ERROR = 111,
@@ -100,6 +101,7 @@ private:
 
   void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
                      std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot);
+  geometry_msgs::Twist computeBrakingCommand(const geometry_msgs::Twist& global_vel);
 
   base_local_planner::Trajectory simulateVelocity(const tf::Stamped<tf::Pose>& global_pose,
                                                   const geometry_msgs::Twist& global_vel,

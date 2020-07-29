@@ -91,8 +91,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
       message = "Driving";
       computeCarrot(global_plan_, closest, carrot);
       break;
-    case State::ARRIVING:
-    {
+    case State::ARRIVING: {
       message = "Arriving";
       // The carrot walks along the arriving angle from the goal
       auto direction = tf::quatRotate(tf::createQuaternionFromYaw(arriving_angle_),
@@ -193,20 +192,15 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
 
   if (trajectory.cost_ < 0)
   {
-    // Break while keeping the steering radius constant
-    // To do this, first figure out if max_x_step or max_theta_step is the slowest way to break. Then apply that as a
-    // percentage step in the other axis.
-    if (max_x_step / global_vel.linear.x < max_theta_step / global_vel.angular.z)
-    {
-      cmd_vel.linear.x = global_vel.linear.x - max_x_step;
-      cmd_vel.angular.z = global_vel.linear.z * (1 - max_x_step / global_vel.linear.x);
-    }
+    cmd_vel = computeBrakingCommand(global_vel);
+
+    // check if that cmd_vel collides with an obstacle in the future
+    trajectory = simulateVelocity(global_pose, global_vel, cmd_vel);
+
+    if (trajectory.cost_ < 0)
+      return Outcome::BLOCKED_PATH;
     else
-    {
-      cmd_vel.linear.x = global_vel.linear.x * (1 - max_theta_step / global_vel.angular.z);
-      cmd_vel.angular.z = global_vel.linear.z - max_theta_step;
-    }
-    return Outcome::BLOCKED_PATH;
+      return Outcome::BRAKING;
   }
   else
     return Outcome::OK;
@@ -236,6 +230,38 @@ void CarrotPlanner::computeCarrot(const std::vector<geometry_msgs::PoseStamped>&
   }
 
   carrot = current;
+}
+
+geometry_msgs::Twist CarrotPlanner::computeBrakingCommand(const geometry_msgs::Twist& global_vel)
+{
+  geometry_msgs::Twist cmd_vel;
+  auto limits = planner_util_->getCurrentLimits();
+  double max_x_step = limits.acc_lim_x * sim_period_;
+  double max_theta_step = limits.acc_lim_theta * sim_period_;
+
+  // Break while keeping the steering radius constant
+  // To do this, first figure out if max_x_step or max_theta_step is the slowest way to break. Then apply that as a
+  // percentage step in the other axis.
+  double brake_precentage_x = std::min(1.0, fabs(max_x_step / global_vel.linear.x));
+  double brake_precentage_z = std::min(1.0, fabs(max_theta_step / global_vel.angular.z));
+  if (brake_precentage_x < brake_precentage_z)
+  {
+    cmd_vel.linear.x = global_vel.linear.x * (1 - brake_precentage_x);
+    cmd_vel.angular.z = global_vel.linear.z * (1 - brake_precentage_x);
+  }
+  else
+  {
+    cmd_vel.linear.x = global_vel.linear.x * (1 - brake_precentage_z);
+    cmd_vel.angular.z = global_vel.linear.z * (1 - brake_precentage_z);
+  }
+
+  // Apply motion limits
+  cmd_vel.linear.x = std::max(std::min(cmd_vel.linear.x, limits.max_vel_x), limits.min_vel_x);
+  cmd_vel.linear.x = std::min(cmd_vel.linear.x, limits.max_vel_trans);
+  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans :
+                                                                         cmd_vel.linear.x;
+  ROS_INFO_NAMED("ruvu_carrot_local_planner", "After motion limit: %.4f", cmd_vel.linear.x);
+  return cmd_vel;
 }
 
 bool CarrotPlanner::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples)
@@ -289,7 +315,8 @@ base_local_planner::Trajectory CarrotPlanner::simulateVelocity(Eigen::Vector3f p
   if (generator_.generateTrajectory(pos, vel, vel_samples, traj))
     traj.cost_ = scored_sampling_planner_.scoreTrajectory(traj, -1);
   else
-    ROS_WARN_STREAM_NAMED("ruvu_carrot_local_planner", "Carot controller generated an invalid trajectory");
+    ROS_WARN_NAMED("ruvu_carrot_local_planner", "Carot controller generated an invalid trajectory %f, %f, %f, cost: %f",
+                   vel_samples[0], vel_samples[1], vel_samples[2], traj.cost_);
 
   return traj;
 }

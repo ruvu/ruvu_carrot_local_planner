@@ -238,8 +238,9 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     switch (outcome)
     {
       case CarrotPlanner::Outcome::OK:
-        ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Computed the following cmd_vel: %.3lf, %.3lf, %.3lf",
-                        cmd_vel.twist.linear.x, cmd_vel.twist.linear.y, cmd_vel.twist.angular.z);
+      case CarrotPlanner::Outcome::BRAKING:
+        ROS_INFO_NAMED("ruvu_carrot_local_planner", "Computed the following cmd_vel: %.3lf, %.3lf, %.3lf",
+                       cmd_vel.twist.linear.x, cmd_vel.twist.linear.y, cmd_vel.twist.angular.z);
 
         {
           std::vector<geometry_msgs::PoseStamped> local_plan;
