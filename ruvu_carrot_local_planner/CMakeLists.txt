@@ -4,7 +4,7 @@ project(ruvu_carrot_local_planner)
 add_compile_options(-std=c++11)
 
 # https://stackoverflow.com/questions/5088460/flags-to-enable-thorough-and-verbose-g-warnings
-add_compile_options(-Wall -Wextra -Wno-ignored-qualifiers -Wcast-align -Wdisabled-optimization -Wformat=2 -Winit-self -Wnoexcept -Wredundant-decls -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=1 -Wswitch-default -Wtype-limits -Werror -Wno-unused)
+set(FLAGS -Wall -Wextra -Wno-ignored-qualifiers -Wcast-align -Wdisabled-optimization -Wformat=2 -Winit-self -Wnoexcept -Wredundant-decls -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=1 -Wswitch-default -Wtype-limits -Werror -Wno-unused)
 
 find_package(catkin REQUIRED COMPONENTS
   base_local_planner
@@ -49,6 +49,7 @@ add_library(ruvu_carrot_local_planner
   src/parameter_magic.h
 )
 add_dependencies(ruvu_carrot_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_compile_options(ruvu_carrot_local_planner PRIVATE ${FLAGS})
 target_link_libraries(ruvu_carrot_local_planner ${catkin_LIBRARIES})
 
 install(TARGETS ruvu_carrot_local_planner
@@ -61,3 +62,7 @@ install(FILES plugins.xml
 )
 
 set(ROSLINT_CPP_OPTS "--filter=-build/header_guard,-build/include_what_you_use,-whitespace/braces,-runtime/references")
+
+catkin_add_gtest(test_utils test/test_utils.cpp)
+target_compile_options(test_utils PRIVATE ${FLAGS})
+target_link_libraries(test_utils ${catkin_LIBRARIES})
