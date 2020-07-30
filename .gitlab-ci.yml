@@ -97,10 +97,14 @@ noetic-build:
   extends: .build
   variables:
     ROS_DISTRO: noetic
+    PACKAGES: >  # turtlebot is not released yet, so temporary skip it
+        ruvu_carrot_local_planner
 noetic-test:
   extends: .test
   variables:
     ROS_DISTRO: noetic
+    PACKAGES: >  # turtlebot is not released yet, so temporary skip it
+        ruvu_carrot_local_planner
 noetic-release:
   extends: .release
   variables:
