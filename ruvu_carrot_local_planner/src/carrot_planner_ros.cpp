@@ -2,10 +2,12 @@
 
 #include "./carrot_planner_ros.h"
 
-#include <pluginlib/class_list_macros.h>
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
+#include <pluginlib/class_list_macros.h>
 
+#include "./carrot_planner.h"
+#include "./simulator.h"
 #include "./parameter_magic.h"
 #include "./utils.h"
 
@@ -53,15 +55,17 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   parameters.carrot_distance = config.carrot_distance;
   parameters.p_angle = config.p_angle;
   parameters.slow_down_margin = config.slow_down_margin;
-  parameters.sim_time = config.sim_time;
-  parameters.sim_granularity = config.sim_granularity;
-  parameters.angular_sim_granularity = config.angular_sim_granularity;
-  parameters.occdist_scale = config.occdist_scale;
-  parameters.scaling_speed = config.scaling_speed;
-  parameters.max_scaling_factor = config.max_scaling_factor;
-  parameters.use_dwa = config.use_dwa;
-
   carrot_planner_->reconfigure(parameters);
+
+  Simulator::Parameters sim_parameters;
+  sim_parameters.sim_time = config.sim_time;
+  sim_parameters.sim_granularity = config.sim_granularity;
+  sim_parameters.angular_sim_granularity = config.angular_sim_granularity;
+  sim_parameters.occdist_scale = config.occdist_scale;
+  sim_parameters.scaling_speed = config.scaling_speed;
+  sim_parameters.max_scaling_factor = config.max_scaling_factor;
+  sim_parameters.use_dwa = config.use_dwa;
+  simulator_->reconfigure(sim_parameters);
 }
 
 void CarrotPlannerROS::initialize(std::string name, TF* tf, costmap_2d::Costmap2DROS* costmap_ros)
@@ -79,7 +83,8 @@ void CarrotPlannerROS::initialize(std::string name, TF* tf, costmap_2d::Costmap2
     planner_util_.initialize(tf, costmap, costmap_ros_->getGlobalFrameID());
 
     // create the actual planner that we'll use.. it'll configure itself from the parameter server
-    carrot_planner_.reset(new CarrotPlanner(private_nh, &planner_util_));
+    simulator_.reset(new Simulator(private_nh, &planner_util_));
+    carrot_planner_.reset(new CarrotPlanner(private_nh, simulator_.get(), &planner_util_));
 
     if (private_nh.getParam("odom_topic", odom_topic_))
     {
@@ -202,8 +207,9 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     return 108;  // MISSED_PATH
   }
 
-  // update plan in dwa_planner even if we just stop and rotate, to allow checkTrajectory
-  carrot_planner_->updatePlanAndLocalCosts(robot_pose, transformed_plan, costmap_ros_->getRobotFootprint());
+  // update plan in carrot planner even if we just stop and rotate, to allow checkTrajectory
+  carrot_planner_->updatePlan(transformed_plan);
+  simulator_->updatePlanAndFootprint(transformed_plan, costmap_ros_->getRobotFootprint());
 
   // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
   // enough to goal
@@ -216,8 +222,8 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
     publishLocalPlan(local_plan);
     auto limits = planner_util_.getCurrentLimits();
     if (latchedStopRotateController_.computeVelocityCommandsStopRotate(
-            cmd_vel.twist, limits.getAccLimits(), carrot_planner_->getSimPeriod(), &planner_util_, odom_helper_,
-            robot_pose, boost::bind(&CarrotPlanner::checkTrajectory, carrot_planner_.get(), _1, _2, _3)))
+            cmd_vel.twist, limits.getAccLimits(), simulator_->getSimPeriod(), &planner_util_, odom_helper_, robot_pose,
+            boost::bind(&Simulator::checkTrajectory, simulator_.get(), _1, _2, _3)))
     {
       return 0;
     }
