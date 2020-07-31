@@ -191,6 +191,9 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
   // Apply min_vel_trans limit
   cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans :
                                                                          cmd_vel.linear.x;
+  cmd_vel.angular.z = std::abs(cmd_vel.angular.z) < limits.min_vel_theta ?
+                          sgn(cmd_vel.angular.z) * limits.min_vel_theta :
+                          cmd_vel.angular.z;
 
   // check if that cmd_vel collides with an obstacle in the future
   trajectory = simulateVelocity(global_pose, global_vel, cmd_vel);
