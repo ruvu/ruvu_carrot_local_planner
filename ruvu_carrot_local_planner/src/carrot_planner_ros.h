@@ -6,11 +6,14 @@
 #include <ruvu_carrot_local_planner/CarrotPlannerConfig.h>
 
 #include "./local_planner_util.h"
-#include "./carrot_planner.h"
 #include "./latched_stop_rotate_controller.h"
 
 namespace ruvu_carrot_local_planner
 {
+// forward declare
+class CarrotPlanner;
+class Simulator;
+
 /**
  * @class CarrotPlannerROS
  * @brief ROS Wrapper for the CarrotPlanner that adheres to the
@@ -84,6 +87,7 @@ private:
   LocalPlannerUtil planner_util_;
 
   std::unique_ptr<CarrotPlanner> carrot_planner_;
+  std::unique_ptr<Simulator> simulator_;
 
   costmap_2d::Costmap2DROS* costmap_ros_;
 
