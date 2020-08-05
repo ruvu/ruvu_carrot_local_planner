@@ -88,3 +88,24 @@ melodic-release:
   extends: .release
   variables:
     ROS_DISTRO: melodic
+
+noetic-build-on-schedule:
+  extends: .build-on-schedule
+  variables:
+    ROS_DISTRO: noetic
+noetic-build:
+  extends: .build
+  variables:
+    ROS_DISTRO: noetic
+    PACKAGES: >  # turtlebot is not released yet, so temporary skip it
+        ruvu_carrot_local_planner
+noetic-test:
+  extends: .test
+  variables:
+    ROS_DISTRO: noetic
+    PACKAGES: >  # turtlebot is not released yet, so temporary skip it
+        ruvu_carrot_local_planner
+noetic-release:
+  extends: .release
+  variables:
+    ROS_DISTRO: noetic
