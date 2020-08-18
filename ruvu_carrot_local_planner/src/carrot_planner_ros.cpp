@@ -53,6 +53,7 @@ void CarrotPlannerROS::reconfigureCB(CarrotPlannerConfig& config, uint32_t level
   // initialize parameters specific to this module
   CarrotPlanner::Parameters parameters;
   parameters.carrot_distance = config.carrot_distance;
+  parameters.carrot_distance_scaling = config.carrot_distance_scaling;
   parameters.p_angle = config.p_angle;
   parameters.slow_down_margin = config.slow_down_margin;
   carrot_planner_->reconfigure(parameters);

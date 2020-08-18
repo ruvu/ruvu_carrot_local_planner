@@ -20,6 +20,7 @@ public:
   struct Parameters
   {
     double carrot_distance;
+    double carrot_distance_scaling;
     double p_angle;
     double slow_down_margin;
   };
@@ -67,8 +68,9 @@ private:
     ARRIVING = 2,
   } state_ = State::DRIVING;
 
-  void computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
-                     std::vector<geometry_msgs::PoseStamped>::const_iterator it, tf::Stamped<tf::Pose>& carrot);
+  tf::Stamped<tf::Pose> computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
+                                      std::vector<geometry_msgs::PoseStamped>::const_iterator it,
+                                      double carrot_distance);
 
   void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
 
