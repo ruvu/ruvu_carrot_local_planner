@@ -3,13 +3,13 @@
 #include "./carrot_planner.h"
 
 #include <angles/angles.h>
-#include <mbf_utility/navigation_utility.h>
 #include <tf2/utils.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "./local_planner_util.h"
 #include "./simulator.h"
 #include "./utils.h"
+#include "./geometry_utils.hpp"
 
 namespace ruvu_carrot_local_planner
 {
@@ -52,7 +52,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf2::Stamped
 
   // Look for the closest point on the path
   auto closest = min_by(global_plan_.begin(), global_plan_.end(),
-                        [&gp](const geometry_msgs::PoseStamped& ps) { return mbf_utility::distance(gp, ps); });
+                        [&gp](const geometry_msgs::PoseStamped& ps) { return distance2(gp, ps); });
 
   tf2::Vector3 goal;
   tf2::convert(global_plan_.back().pose.position, goal);
