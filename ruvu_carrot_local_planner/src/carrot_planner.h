@@ -5,8 +5,10 @@
 #include <base_local_planner/trajectory.h>
 #include <boost/thread/mutex.hpp>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <ros/node_handle.h>
-#include <tf/transform_datatypes.h>
+#include <tf2/utils.h>
+#include <tf2/LinearMath/Transform.h>
 
 namespace ruvu_carrot_local_planner
 {
@@ -57,9 +59,9 @@ public:
    */
   void updatePlan(const std::vector<geometry_msgs::PoseStamped>& new_plan);
 
-  Outcome computeVelocityCommands(const tf::Stamped<tf::Pose>& global_pose, const geometry_msgs::Twist& global_vel,
-                                  geometry_msgs::Twist& cmd_vel, std::string& message,
-                                  base_local_planner::Trajectory& trajectory);
+  Outcome computeVelocityCommands(const tf2::Stamped<tf2::Transform>& global_pose,
+                                  const geometry_msgs::Twist& global_vel, geometry_msgs::Twist& cmd_vel,
+                                  std::string& message, base_local_planner::Trajectory& trajectory);
 
 private:
   enum class State
@@ -68,11 +70,11 @@ private:
     ARRIVING = 2,
   } state_ = State::DRIVING;
 
-  tf::Stamped<tf::Pose> computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
-                                      std::vector<geometry_msgs::PoseStamped>::const_iterator it,
-                                      double carrot_distance);
+  tf2::Stamped<tf2::Transform> computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
+                                             std::vector<geometry_msgs::PoseStamped>::const_iterator it,
+                                             double carrot_distance);
 
-  void publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot);
+  void publishDebugCarrot(const tf2::Stamped<tf2::Transform>& carrot);
 
   // input to the algorithm
   Simulator* simulator_;

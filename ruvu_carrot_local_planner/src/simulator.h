@@ -5,8 +5,10 @@
 #include <base_local_planner/obstacle_cost_function.h>
 #include <base_local_planner/simple_scored_sampling_planner.h>
 #include <base_local_planner/simple_trajectory_generator.h>
-#include <tf/transform_datatypes.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2/LinearMath/Transform.h>
 
 namespace ruvu_carrot_local_planner
 {
@@ -63,7 +65,7 @@ public:
    */
   bool checkTrajectory(const Eigen::Vector3f pos, const Eigen::Vector3f vel, const Eigen::Vector3f vel_samples);
 
-  base_local_planner::Trajectory simulateVelocity(const tf::Stamped<tf::Pose>& global_pose,
+  base_local_planner::Trajectory simulateVelocity(const tf2::Stamped<tf2::Transform>& global_pose,
                                                   const geometry_msgs::Twist& global_vel,
                                                   geometry_msgs::Twist& cmd_vel);
 
