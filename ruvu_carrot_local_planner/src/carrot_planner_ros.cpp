@@ -140,7 +140,7 @@ bool CarrotPlannerROS::isGoalReached(double xy_tolerance, double yaw_tolerance)
   }
 
 #ifdef USE_OLD_TF
-  tf2::Stamped<tf2::Transform> current_pose;
+  tf::Stamped<tf::Pose> current_pose;
 #else
   geometry_msgs::PoseStamped current_pose;
 #endif
@@ -153,7 +153,7 @@ bool CarrotPlannerROS::isGoalReached(double xy_tolerance, double yaw_tolerance)
 
   geometry_msgs::PoseStamped pose;
 #ifdef USE_OLD_TF
-  tf2::TransformStampedTFToMsg(current_pose, pose);
+  tf::poseStampedTFToMsg(current_pose, pose);
 #else
   pose = current_pose;
 #endif
