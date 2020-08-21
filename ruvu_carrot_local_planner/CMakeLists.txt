@@ -68,3 +68,7 @@ set(ROSLINT_CPP_OPTS "--filter=-build/header_guard,-build/include_what_you_use,-
 catkin_add_gtest(test_utils test/test_utils.cpp)
 target_compile_options(test_utils PRIVATE ${FLAGS})
 target_link_libraries(test_utils ${catkin_LIBRARIES})
+
+catkin_add_gtest(geometry_utils test/test_geometry_utils.cpp)
+target_compile_options(geometry_utils PRIVATE ${FLAGS})
+target_link_libraries(geometry_utils ${catkin_LIBRARIES})
