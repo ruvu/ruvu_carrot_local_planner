@@ -141,24 +141,6 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     cmd_vel.linear.x = -cmd_vel.linear.x;
   }
 
-  // Scale back the forward velocity when turning faster
-  {
-    double brake_factor = 1 - fabs(cmd_vel.angular.z / limits.max_vel_theta);
-    brake_factor = brake_factor < 0 ? 0 : brake_factor;
-    cmd_vel.linear.x *= brake_factor;
-  }
-
-  if (fabs(cmd_vel.angular.z) > limits.max_vel_theta)
-  {
-    cmd_vel.angular.z = cmd_vel.angular.z * limits.max_vel_theta / fabs(cmd_vel.angular.z);
-  }
-
-  // Apply some motion limits
-  cmd_vel.linear.x = std::min(cmd_vel.linear.x, limits.max_vel_x);
-  cmd_vel.linear.x = std::max(cmd_vel.linear.x, limits.min_vel_x);
-  cmd_vel.linear.x = std::min(cmd_vel.linear.x, limits.max_vel_trans);
-  cmd_vel.linear.x = std::max(cmd_vel.linear.x, -limits.max_vel_trans);
-
   // Smooth the required velocity with the maximum acceleration
   double max_x_step = limits.acc_lim_x * sim_period_;
   double max_theta_step = limits.acc_lim_theta * sim_period_;
@@ -171,12 +153,43 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     cmd_vel.angular.z = global_vel.angular.z + sgn(cmd_vel.angular.z - global_vel.angular.z) * max_theta_step;
   }
 
-  // Apply min_vel_trans limit
+  // Apply motion limits, be careful of the order, max vels should be after min_vel_trans
   cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans :
                                                                          cmd_vel.linear.x;
+  cmd_vel.linear.x = std::max(cmd_vel.linear.x, limits.min_vel_x);
+  cmd_vel.linear.x = std::min(cmd_vel.linear.x, limits.max_vel_x);
+  cmd_vel.linear.x = std::min(cmd_vel.linear.x, limits.max_vel_trans);
+  cmd_vel.linear.x = std::max(cmd_vel.linear.x, -limits.max_vel_trans);
+
+  // verify
+  if (std::abs(cmd_vel.linear.x) < limits.min_vel_trans)
+  {
+    ROS_WARN_STREAM_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "min_vel_trans prevents the robot from moving");
+    return Outcome::NO_VALID_CMD;
+  }
+
+  // At this point we have a valid linear velocity
+
+  // Scale back the forward velocity when turning faster
+  {
+    double brake_factor = 1 - fabs(cmd_vel.angular.z / limits.max_vel_theta);
+    brake_factor = brake_factor < 0 ? 0 : brake_factor;
+    cmd_vel.linear.x *= brake_factor;
+  }
+
+  // Re-apply potential violated linear velocity constraints
+  cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans :
+                                                                         cmd_vel.linear.x;
+  cmd_vel.linear.x = std::max(cmd_vel.linear.x, limits.min_vel_x);
+
+  // Apply all angular motion constraints
   cmd_vel.angular.z = std::abs(cmd_vel.angular.z) < limits.min_vel_theta ?
                           sgn(cmd_vel.angular.z) * limits.min_vel_theta :
                           cmd_vel.angular.z;
+  if (fabs(cmd_vel.angular.z) > limits.max_vel_theta)
+  {
+    cmd_vel.angular.z = cmd_vel.angular.z * limits.max_vel_theta / fabs(cmd_vel.angular.z);
+  }
 
   // check if that cmd_vel collides with an obstacle in the future
   trajectory = simulator_->simulateVelocity(global_pose, global_vel, cmd_vel);
