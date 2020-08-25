@@ -47,6 +47,7 @@ add_library(ruvu_carrot_local_planner
   src/latched_stop_rotate_controller.cpp src/latched_stop_rotate_controller.h
   src/local_planner_limits.cpp src/local_planner_limits.h
   src/utils.cpp src/utils.h
+  src/utils.cpp src/geometry_utils.hpp
   src/parameter_magic.h
 )
 add_dependencies(ruvu_carrot_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -67,3 +68,7 @@ set(ROSLINT_CPP_OPTS "--filter=-build/header_guard,-build/include_what_you_use,-
 catkin_add_gtest(test_utils test/test_utils.cpp)
 target_compile_options(test_utils PRIVATE ${FLAGS})
 target_link_libraries(test_utils ${catkin_LIBRARIES})
+
+catkin_add_gtest(geometry_utils test/test_geometry_utils.cpp)
+target_compile_options(geometry_utils PRIVATE ${FLAGS})
+target_link_libraries(geometry_utils ${catkin_LIBRARIES})

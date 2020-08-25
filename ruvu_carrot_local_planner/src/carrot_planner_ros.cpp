@@ -5,6 +5,7 @@
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
 #include <pluginlib/class_list_macros.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include "./carrot_planner.h"
 #include "./simulator.h"
@@ -235,8 +236,8 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   }
   else
   {
-    tf::Stamped<tf::Pose> robot_pose_tf;
-    tf::poseStampedMsgToTF(robot_pose, robot_pose_tf);
+    tf2::Stamped<tf2::Transform> robot_pose_tf;
+    tf2::convert(robot_pose, robot_pose_tf);
     nav_msgs::Odometry odom;
     odom_helper_.getOdom(odom);
     base_local_planner::Trajectory trajectory;
@@ -255,11 +256,13 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
             double p_x, p_y, p_th;
             trajectory.getPoint(i, p_x, p_y, p_th);
 
-            tf::Stamped<tf::Pose> p =
-                tf::Stamped<tf::Pose>(tf::Pose(tf::createQuaternionFromYaw(p_th), tf::Point(p_x, p_y, 0.0)),
-                                      ros::Time::now(), costmap_ros_->getGlobalFrameID());
+            tf2::Quaternion q;
+            q.setRPY(0, 0, p_th);
+            auto p = tf2::Stamped<tf2::Transform>(tf2::Transform(q, tf2::Vector3(p_x, p_y, 0.0)), ros::Time::now(),
+                                                  costmap_ros_->getGlobalFrameID());
+
             geometry_msgs::PoseStamped pose;
-            tf::poseStampedTFToMsg(p, pose);
+            tf2::toMsg(p, pose);
             local_plan.push_back(pose);
           }
           publishLocalPlan(local_plan);

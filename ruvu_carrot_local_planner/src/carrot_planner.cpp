@@ -3,13 +3,13 @@
 #include "./carrot_planner.h"
 
 #include <angles/angles.h>
-#include <mbf_utility/navigation_utility.h>
 #include <tf2/utils.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "./local_planner_util.h"
 #include "./simulator.h"
 #include "./utils.h"
+#include "./geometry_utils.hpp"
 
 namespace ruvu_carrot_local_planner
 {
@@ -42,20 +42,20 @@ void CarrotPlanner::updatePlan(const std::vector<geometry_msgs::PoseStamped>& ne
   }
 }
 
-CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<tf::Pose>& global_pose,
+CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf2::Stamped<tf2::Transform>& global_pose,
                                                               const geometry_msgs::Twist& global_vel,
                                                               geometry_msgs::Twist& cmd_vel, std::string& message,
                                                               base_local_planner::Trajectory& trajectory)
 {
   geometry_msgs::PoseStamped gp;
-  tf::poseStampedTFToMsg(global_pose, gp);
+  tf2::toMsg(global_pose, gp);
 
   // Look for the closest point on the path
   auto closest = min_by(global_plan_.begin(), global_plan_.end(),
-                        [&gp](const geometry_msgs::PoseStamped& ps) { return mbf_utility::distance(gp, ps); });
+                        [&gp](const geometry_msgs::PoseStamped& ps) { return distance2(gp, ps); });
 
-  tf::Point goal;
-  tf::pointMsgToTF(global_plan_.back().pose.position, goal);
+  tf2::Vector3 goal;
+  tf2::convert(global_plan_.back().pose.position, goal);
   auto goal_error = goal - global_pose.getOrigin();
   double goal_distance = goal_error.length();
   double carrot_distance =
@@ -70,7 +70,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
 
   auto limits = planner_util_->getCurrentLimits();
 
-  tf::Stamped<tf::Pose> carrot(tf::Pose::getIdentity(), global_pose.stamp_, global_pose.frame_id_);
+  tf2::Stamped<tf2::Transform> carrot(tf2::Transform::getIdentity(), global_pose.stamp_, global_pose.frame_id_);
   switch (state_)
   {
     case State::DRIVING:
@@ -80,8 +80,9 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     case State::ARRIVING: {
       message = "Arriving";
       // The carrot walks along the arriving angle from the goal
-      auto direction = tf::quatRotate(tf::createQuaternionFromYaw(arriving_angle_),
-                                      tf::Vector3(carrot_distance - goal_distance, 0, 0));
+      tf2::Quaternion q;
+      q.setRPY(0, 0, arriving_angle_);
+      auto direction = tf2::quatRotate(q, tf2::Vector3(carrot_distance - goal_distance, 0, 0));
       if (direction.dot(goal_error) < 0)
       {
         message = "Goal overshoot detected";
@@ -118,14 +119,14 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
   ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "carrot_error=%f", carrot_error);
 
   // determine the position of the carrot relative to the closest point
-  tf::Point closest_position;
-  tf::pointMsgToTF(closest->pose.position, closest_position);
+  tf2::Vector3 closest_position;
+  tf2::convert(closest->pose.position, closest_position);
   auto rel_carrot = carrot.getOrigin() - closest_position;
 
   // Determine the angle of the poses on the path relative to the direction of the path. The direciton of the path can
   // be estimated by looking at the location of the carrot relative the the closest point. That is "forward" along the
   // path.
-  double path_direction = angles::shortest_angular_distance(tf::getYaw(closest->pose.orientation),
+  double path_direction = angles::shortest_angular_distance(tf2::getYaw(closest->pose.orientation),
                                                             atan2(rel_carrot.getY(), rel_carrot.getX()));
   bool switch_direction = !(-M_PI_2 < path_direction && path_direction < M_PI_2);
 
@@ -200,21 +201,21 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf::Stamped<
     return Outcome::OK;
 }
 
-tf::Stamped<tf::Pose> CarrotPlanner::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
-                                                   std::vector<geometry_msgs::PoseStamped>::const_iterator it,
-                                                   double carrot_distance)
+tf2::Stamped<tf2::Transform> CarrotPlanner::computeCarrot(const std::vector<geometry_msgs::PoseStamped>& path,
+                                                          std::vector<geometry_msgs::PoseStamped>::const_iterator it,
+                                                          double carrot_distance)
 {
   // Walk along the path forward and count the distance. When carrot_distance has been walked, the carrot is found.
   double distance = carrot_distance;
 
-  tf::Stamped<tf::Pose> previous;
-  tf::Stamped<tf::Pose> current;
-  tf::poseStampedMsgToTF(*it, current);
+  tf2::Stamped<tf2::Transform> previous;
+  tf2::Stamped<tf2::Transform> current;
+  tf2::convert(*it, current);
   for (; ++it < path.end();)
   {
     // Update previous & current
     previous = current;
-    tf::poseStampedMsgToTF(*it, current);
+    tf2::convert(*it, current);
 
     distance -= (current.getOrigin() - previous.getOrigin()).length();
     if (distance <= 0)
@@ -226,7 +227,7 @@ tf::Stamped<tf::Pose> CarrotPlanner::computeCarrot(const std::vector<geometry_ms
   return current;
 }
 
-void CarrotPlanner::publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot)
+void CarrotPlanner::publishDebugCarrot(const tf2::Stamped<tf2::Transform>& carrot)
 {
   visualization_msgs::Marker marker;
   marker.header.frame_id = carrot.frame_id_;
@@ -235,7 +236,7 @@ void CarrotPlanner::publishDebugCarrot(const tf::Stamped<tf::Pose>& carrot)
   marker.id = 0;
   marker.type = visualization_msgs::Marker::SPHERE;
   marker.action = visualization_msgs::Marker::ADD;
-  tf::poseTFToMsg(carrot, marker.pose);
+  tf2::toMsg(carrot, marker.pose);
   marker.scale.x = 0.2;
   marker.scale.y = 0.2;
   marker.scale.z = 0.2;

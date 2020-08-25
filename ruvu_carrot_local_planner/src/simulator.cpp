@@ -1,5 +1,7 @@
 #include "simulator.h"
 
+#include <tf2/utils.h>
+
 #include "./local_planner_util.h"
 #include "./utils.h"
 
@@ -61,11 +63,11 @@ bool Simulator::checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen:
   return false;
 }
 
-base_local_planner::Trajectory Simulator::simulateVelocity(const tf::Stamped<tf::Pose>& global_pose,
+base_local_planner::Trajectory Simulator::simulateVelocity(const tf2::Stamped<tf2::Transform>& global_pose,
                                                            const geometry_msgs::Twist& global_vel,
                                                            geometry_msgs::Twist& cmd_vel)
 {
-  double yaw = tf::getYaw(global_pose.getRotation());
+  double yaw = tf2::getYaw(global_pose.getRotation());
   Eigen::Vector3f pos(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw);
   Eigen::Vector3f vel(global_vel.linear.x, global_vel.linear.y, global_vel.angular.z);
   Eigen::Vector3f vel_samples(cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z);
@@ -77,7 +79,7 @@ base_local_planner::Trajectory Simulator::simulateVelocity(Eigen::Vector3f pos, 
                                                            Eigen::Vector3f vel_samples)
 {
   geometry_msgs::PoseStamped goal_pose = global_plan_.back();
-  Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
+  Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf2::getYaw(goal_pose.pose.orientation));
   auto limits = static_cast<base_local_planner::LocalPlannerLimits>(planner_util_->getCurrentLimits());
 
   Eigen::Vector3f vsamples(0, 0, 0);
