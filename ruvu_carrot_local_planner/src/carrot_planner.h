@@ -28,6 +28,7 @@ public:
   enum class Outcome : uint32_t
   {
     OK = 0,
+    NO_VALID_CMD = 102,
     MISSED_GOAL = 107,
     BLOCKED_PATH = 109,
     TF_ERROR = 111,
