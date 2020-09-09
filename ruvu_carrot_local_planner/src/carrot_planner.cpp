@@ -182,6 +182,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf2::Stamped
   cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans :
                                                                          cmd_vel.linear.x;
   cmd_vel.linear.x = std::max(cmd_vel.linear.x, limits.min_vel_x);
+  cmd_vel.linear.x = std::min(cmd_vel.linear.x, limits.max_vel_x);
 
   // Apply all angular motion constraints
   cmd_vel.angular.z = std::abs(cmd_vel.angular.z) < limits.min_vel_theta ?
