@@ -40,7 +40,6 @@ generate_dynamic_reconfigure_options(
 ###################################
 
 catkin_package(
-  LIBRARIES ruvu_carrot_local_planner
   CATKIN_DEPENDS
     base_local_planner
     costmap_2d
