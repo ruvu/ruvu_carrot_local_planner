@@ -1,3 +1,5 @@
+// Copyright 2020 RUVU BV.
+
 #include <gtest/gtest.h>
 
 #include "../src/utils.h"

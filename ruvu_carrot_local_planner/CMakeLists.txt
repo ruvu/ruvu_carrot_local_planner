@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   pluginlib
   roscpp
+  ruvu_lint
   tf
 )
 
@@ -25,19 +26,33 @@ include_directories(
 )
 add_definitions(${EIGEN3_DEFINITIONS})
 
+################################################
+## Declare ROS dynamic reconfigure parameters ##
+################################################
+
 # dynamic reconfigure
 generate_dynamic_reconfigure_options(
   cfg/CarrotPlanner.cfg
 )
 
+###################################
+## catkin specific configuration ##
+###################################
+
 catkin_package(
   LIBRARIES ruvu_carrot_local_planner
   CATKIN_DEPENDS
+    base_local_planner
+    costmap_2d
     dynamic_reconfigure
     nav_msgs
-    pluginlib
     roscpp
+    tf
 )
+
+###########
+## Build ##
+###########
 
 add_library(ruvu_carrot_local_planner
   src/carrot_planner_ros.cpp src/carrot_planner_ros.h
@@ -54,6 +69,10 @@ add_dependencies(ruvu_carrot_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} $
 target_compile_options(ruvu_carrot_local_planner PRIVATE ${FLAGS})
 target_link_libraries(ruvu_carrot_local_planner ${catkin_LIBRARIES})
 
+#############
+## Install ##
+#############
+
 install(TARGETS ruvu_carrot_local_planner
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -63,12 +82,19 @@ install(FILES plugins.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
+#############
+## Testing ##
+#############
+
 set(ROSLINT_CPP_OPTS "--filter=-build/header_guard,-build/include_what_you_use,-whitespace/braces,-runtime/references")
+ruvu_lint_add_test()
 
-catkin_add_gtest(test_utils test/test_utils.cpp)
-target_compile_options(test_utils PRIVATE ${FLAGS})
-target_link_libraries(test_utils ${catkin_LIBRARIES})
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(test_utils test/test_utils.cpp)
+  target_compile_options(test_utils PRIVATE ${FLAGS})
+  target_link_libraries(test_utils ${catkin_LIBRARIES})
 
-catkin_add_gtest(geometry_utils test/test_geometry_utils.cpp)
-target_compile_options(geometry_utils PRIVATE ${FLAGS})
-target_link_libraries(geometry_utils ${catkin_LIBRARIES})
+  catkin_add_gtest(geometry_utils test/test_geometry_utils.cpp)
+  target_compile_options(geometry_utils PRIVATE ${FLAGS})
+  target_link_libraries(geometry_utils ${catkin_LIBRARIES})
+endif()

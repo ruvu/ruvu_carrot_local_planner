@@ -43,7 +43,7 @@ public:
 
   LocalPlannerLimits() = default;
 
-  LocalPlannerLimits(base_local_planner::LocalPlannerLimits limits);
+  explicit LocalPlannerLimits(base_local_planner::LocalPlannerLimits limits);
 
   explicit operator base_local_planner::LocalPlannerLimits() const;
 };

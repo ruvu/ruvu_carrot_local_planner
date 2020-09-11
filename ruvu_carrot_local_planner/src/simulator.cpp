@@ -1,4 +1,6 @@
-#include "simulator.h"
+// Copyright 2020 RUVU BV.
+
+#include "./simulator.h"
 
 #include <tf2/utils.h>
 

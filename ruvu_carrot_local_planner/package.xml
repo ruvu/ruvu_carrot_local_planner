@@ -22,6 +22,8 @@
   <depend>roscpp</depend>
   <depend>tf</depend>
 
+  <test_depend>ruvu_lint</test_depend>
+
   <export>
     <mbf_costmap_core plugin="${prefix}/plugins.xml" />
   </export>
