@@ -2,8 +2,7 @@
 <package format="2">
   <name>ruvu_carrot_local_planner</name>
   <version>0.0.1</version>
-  <description>
-  This package implements a carrot planner based local planner according to the BaseLocalPlanner interface specified in the <a href="http://wiki.ros.org/nav_core">nav_core</a> package.
+  <description>ruvu_carrot_local_planner implements a carrot planner based local planner according to the mbf_costmap_core::CostmapController interface specified in the <a href="http://wiki.ros.org/mbf_costmap_core">mbf_costmap_core</a> package.
   </description>
 
   <maintainer email="ramon@ruvu.nl">Ramon Wijnands</maintainer>

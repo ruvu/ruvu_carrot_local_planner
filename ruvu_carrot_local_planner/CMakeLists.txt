@@ -53,26 +53,26 @@ catkin_package(
 ## Build ##
 ###########
 
-add_library(ruvu_carrot_local_planner
-  src/carrot_planner_ros.cpp src/carrot_planner_ros.h
+add_library(${PROJECT_NAME}
   src/carrot_planner.cpp src/carrot_planner.h
-  src/simulator.cpp src/simulator.h
-  src/local_planner_util.cpp src/local_planner_util.h
+  src/carrot_planner_ros.cpp src/carrot_planner_ros.h
+  src/geometry_utils.hpp
   src/latched_stop_rotate_controller.cpp src/latched_stop_rotate_controller.h
   src/local_planner_limits.cpp src/local_planner_limits.h
-  src/utils.cpp src/utils.h
-  src/utils.cpp src/geometry_utils.hpp
+  src/local_planner_util.cpp src/local_planner_util.h
   src/parameter_magic.h
+  src/simulator.cpp src/simulator.h
+  src/utils.cpp src/utils.h
 )
-add_dependencies(ruvu_carrot_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_compile_options(ruvu_carrot_local_planner PRIVATE ${FLAGS})
-target_link_libraries(ruvu_carrot_local_planner ${catkin_LIBRARIES})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_compile_options(${PROJECT_NAME} PRIVATE ${FLAGS})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 #############
 ## Install ##
 #############
 
-install(TARGETS ruvu_carrot_local_planner
+install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
