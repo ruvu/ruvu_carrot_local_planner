@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "../src/utils.h"
+#include "../src/utils.hpp"
 
 TEST(TestSgn, minus1)
 {
