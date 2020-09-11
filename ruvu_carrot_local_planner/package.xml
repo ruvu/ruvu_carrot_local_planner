@@ -21,6 +21,7 @@
   <depend>roscpp</depend>
   <depend>tf</depend>
 
+  <test_depend>rosunit</test_depend>
   <test_depend>ruvu_lint</test_depend>
 
   <export>
