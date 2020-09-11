@@ -1,9 +1,11 @@
-#include "simulator.h"
+// Copyright 2020 RUVU BV.
+
+#include "./simulator.hpp"
 
 #include <tf2/utils.h>
 
-#include "./local_planner_util.h"
-#include "./utils.h"
+#include "./local_planner_util.hpp"
+#include "./utils.hpp"
 
 namespace ruvu_carrot_local_planner
 {

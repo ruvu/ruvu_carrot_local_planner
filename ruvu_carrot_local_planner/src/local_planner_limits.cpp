@@ -1,6 +1,6 @@
 // Copyright 2019 RUVU BV.
 
-#include "./local_planner_limits.h"
+#include "./local_planner_limits.hpp"
 
 #include <ros/common.h>
 
