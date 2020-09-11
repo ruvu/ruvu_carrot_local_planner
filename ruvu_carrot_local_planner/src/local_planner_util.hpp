@@ -4,7 +4,7 @@
 
 #include <base_local_planner/local_planner_util.h>
 #include <mbf_utility/types.h>
-#include "./local_planner_limits.h"
+#include "./local_planner_limits.hpp"
 
 namespace ruvu_carrot_local_planner
 {

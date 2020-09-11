@@ -1,6 +1,6 @@
 // Copyright 2019 RUVU BV.
 
-#include "./utils.h"
+#include "./utils.hpp"
 
 namespace ruvu_carrot_local_planner
 {

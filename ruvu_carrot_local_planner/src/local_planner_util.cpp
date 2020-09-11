@@ -1,10 +1,10 @@
 // Copyright 2019 RUVU BV.
 
-#include "./local_planner_util.h"
+#include "./local_planner_util.hpp"
 
 #include <base_local_planner/goal_functions.h>
 
-#include "./utils.h"
+#include "./utils.hpp"
 
 namespace ruvu_carrot_local_planner
 {

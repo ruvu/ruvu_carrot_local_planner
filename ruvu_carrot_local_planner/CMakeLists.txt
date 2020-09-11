@@ -54,15 +54,15 @@ catkin_package(
 ###########
 
 add_library(${PROJECT_NAME}
-  src/carrot_planner.cpp src/carrot_planner.h
-  src/carrot_planner_ros.cpp src/carrot_planner_ros.h
+  src/carrot_planner.cpp src/carrot_planner.hpp
+  src/carrot_planner_ros.cpp src/carrot_planner_ros.hpp
   src/geometry_utils.hpp
-  src/latched_stop_rotate_controller.cpp src/latched_stop_rotate_controller.h
-  src/local_planner_limits.cpp src/local_planner_limits.h
-  src/local_planner_util.cpp src/local_planner_util.h
-  src/parameter_magic.h
-  src/simulator.cpp src/simulator.h
-  src/utils.cpp src/utils.h
+  src/latched_stop_rotate_controller.cpp src/latched_stop_rotate_controller.hpp
+  src/local_planner_limits.cpp src/local_planner_limits.hpp
+  src/local_planner_util.cpp src/local_planner_util.hpp
+  src/parameter_magic.hpp
+  src/simulator.cpp src/simulator.hpp
+  src/utils.cpp src/utils.hpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_compile_options(${PROJECT_NAME} PRIVATE ${FLAGS})

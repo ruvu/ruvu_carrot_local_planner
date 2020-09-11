@@ -1,16 +1,16 @@
 // Copyright 2019 RUVU BV.
 
-#include "./carrot_planner_ros.h"
+#include "./carrot_planner_ros.hpp"
 
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
 #include <pluginlib/class_list_macros.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include "./carrot_planner.h"
-#include "./simulator.h"
-#include "./parameter_magic.h"
-#include "./utils.h"
+#include "./carrot_planner.hpp"
+#include "./simulator.hpp"
+#include "./parameter_magic.hpp"
+#include "./utils.hpp"
 
 // register this planner as a BaseLocalPlanner plugin
 PLUGINLIB_EXPORT_CLASS(ruvu_carrot_local_planner::CarrotPlannerROS, mbf_costmap_core::CostmapController)

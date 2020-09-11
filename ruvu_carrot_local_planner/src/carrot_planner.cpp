@@ -1,14 +1,14 @@
 // Copyright 2019 RUVU BV.
 
-#include "./carrot_planner.h"
+#include "./carrot_planner.hpp"
 
 #include <angles/angles.h>
 #include <tf2/utils.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include "./local_planner_util.h"
-#include "./simulator.h"
-#include "./utils.h"
+#include "./local_planner_util.hpp"
+#include "./simulator.hpp"
+#include "./utils.hpp"
 #include "./geometry_utils.hpp"
 
 namespace ruvu_carrot_local_planner

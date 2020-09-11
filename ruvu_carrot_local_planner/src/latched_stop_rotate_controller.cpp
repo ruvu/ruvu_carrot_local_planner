@@ -1,6 +1,6 @@
 // Copyright 2019 RUVU BV.
 
-#include "./latched_stop_rotate_controller.h"
+#include "./latched_stop_rotate_controller.hpp"
 
 #include <mbf_utility/types.h>
 #include <base_local_planner/latched_stop_rotate_controller.h>

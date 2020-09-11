@@ -5,8 +5,8 @@
 #include <mbf_costmap_core/costmap_controller.h>
 #include <ruvu_carrot_local_planner/CarrotPlannerConfig.h>
 
-#include "./local_planner_util.h"
-#include "./latched_stop_rotate_controller.h"
+#include "./local_planner_util.hpp"
+#include "./latched_stop_rotate_controller.hpp"
 
 namespace ruvu_carrot_local_planner
 {
