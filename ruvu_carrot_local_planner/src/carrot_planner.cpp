@@ -83,7 +83,7 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf2::Stamped
       tf2::Quaternion q;
       q.setRPY(0, 0, arriving_angle_);
       auto direction = tf2::quatRotate(q, tf2::Vector3(carrot_distance - goal_distance, 0, 0));
-      if (direction.dot(goal_error) < 0)
+      if (direction.dot(goal_error) * sgn(carrot_distance - goal_distance) < 0)
       {
         message = "Goal overshoot detected";
         ROS_WARN_STREAM_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", message);
