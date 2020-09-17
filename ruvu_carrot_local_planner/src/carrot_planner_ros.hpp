@@ -95,7 +95,7 @@ private:
   ruvu_carrot_local_planner::CarrotPlannerConfig default_config_;
   bool setup_ = false;
 
-  LatchedStopRotateController latchedStopRotateController_;
+  std::unique_ptr<LatchedStopRotateController> latchedStopRotateController_;
 
   bool initialized_ = false;
 

@@ -10,10 +10,12 @@ namespace ruvu_carrot_local_planner
 class LatchedStopRotateController::LatchedStopRotateControllerImpl
 {
 public:
+  explicit LatchedStopRotateControllerImpl(const std::string& name) : inner_controller_(name){};
   base_local_planner::LatchedStopRotateController inner_controller_;
 };
 
-LatchedStopRotateController::LatchedStopRotateController() : impl_(new LatchedStopRotateControllerImpl())
+LatchedStopRotateController::LatchedStopRotateController(const std::string& name)
+  : impl_(new LatchedStopRotateControllerImpl(name))
 {
 }
 LatchedStopRotateController::~LatchedStopRotateController() = default;

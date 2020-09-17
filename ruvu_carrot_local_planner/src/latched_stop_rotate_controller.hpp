@@ -14,8 +14,8 @@ namespace ruvu_carrot_local_planner
 class LatchedStopRotateController
 {
 public:
-  LatchedStopRotateController();
-  ~LatchedStopRotateController();
+  explicit LatchedStopRotateController(const std::string& name);
+  ~LatchedStopRotateController();  // defined in the implementation file, where impl is a complete type
 
   bool isPositionReached(base_local_planner::LocalPlannerUtil* planner_util,
                          const geometry_msgs::PoseStamped& global_pose);
