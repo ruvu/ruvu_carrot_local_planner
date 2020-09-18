@@ -10,10 +10,21 @@ namespace ruvu_carrot_local_planner
 class LatchedStopRotateController::LatchedStopRotateControllerImpl
 {
 public:
+#if ROS_VERSION_MINIMUM(1, 13, 0)
+  explicit LatchedStopRotateControllerImpl(const std::string& name) : inner_controller_(name)
+  {
+  }
+#else
+  // on kinetic the name argument does not yet exist, fall back to default constructor
+  explicit LatchedStopRotateControllerImpl(const std::string& name) : inner_controller_()
+  {
+  }
+#endif
   base_local_planner::LatchedStopRotateController inner_controller_;
 };
 
-LatchedStopRotateController::LatchedStopRotateController() : impl_(new LatchedStopRotateControllerImpl())
+LatchedStopRotateController::LatchedStopRotateController(const std::string& name)
+  : impl_(new LatchedStopRotateControllerImpl(name))
 {
 }
 LatchedStopRotateController::~LatchedStopRotateController() = default;
