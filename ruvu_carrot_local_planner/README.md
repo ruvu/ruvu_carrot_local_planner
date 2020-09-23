@@ -1,3 +1,7 @@
+<!--
+Copyright 2020 RUVU Robotics B.V.
+-->
+
 # Carrot local planner
 
 This package implements a local planner that follows paths with a carrot planner approach.

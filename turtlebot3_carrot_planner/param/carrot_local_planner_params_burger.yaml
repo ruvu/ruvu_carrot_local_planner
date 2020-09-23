@@ -1,3 +1,5 @@
+# Copyright 2020 RUVU Robotics B.V.
+
 # Robot Configuration Parameters
 max_vel_x: 0.22
 min_vel_x: -0.22

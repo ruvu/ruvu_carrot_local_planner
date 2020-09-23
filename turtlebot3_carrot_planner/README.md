@@ -1,3 +1,7 @@
+<!--
+Copyright 2020 RUVU Robotics B.V.
+-->
+
 # Turtlebot3 carrot planner demo
 Demonstrates the carrot planner running on a turtlebot in simulation.
 
