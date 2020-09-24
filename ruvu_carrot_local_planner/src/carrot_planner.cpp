@@ -98,17 +98,18 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf2::Stamped
 
   publishDebugCarrot(carrot);
 
+
+  double a = limits.acc_lim_x;
+  double m = parameters_.slow_down_margin;
+
+  double stopping_distance = pow(global_vel.linear.x, 2) / (2 * a) + global_vel.linear.x * m;
+  if (goal_distance <= stopping_distance)
   {
-    double a = limits.acc_lim_x;
-    double m = parameters_.slow_down_margin;
-
-    double v1 = -a * m - sqrt(a * (a * m * m + 2 * goal_distance));
-    double v2 = -a * m + sqrt(a * (a * m * m + 2 * goal_distance));
-    ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "v1=%f, v2=%f", v1, v2);
-
-    double v_max = v2;
-    ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "v_max=%f v1=%f)", v_max, v1);
-    cmd_vel.linear.x = v_max;
+    cmd_vel.linear.x = sqrt(2 * a * goal_distance);
+  }
+  else
+  {
+    cmd_vel.linear.x = limits.max_vel_trans;
   }
 
   auto error = carrot.getOrigin() - global_pose.getOrigin();
