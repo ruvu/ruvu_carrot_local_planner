@@ -4,9 +4,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(ruvu_carrot_local_planner)
 
 add_compile_options(-std=c++11)
-
-# https://stackoverflow.com/questions/5088460/flags-to-enable-thorough-and-verbose-g-warnings
-set(FLAGS -Wall -Wextra -Wno-ignored-qualifiers -Wcast-align -Wdisabled-optimization -Wformat=2 -Winit-self -Wnoexcept -Wredundant-decls -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=1 -Wswitch-default -Wtype-limits -Werror -Wno-unused)
+set(EXTRA_FLAGS -Wno-unused-private-field) # required for costmap_2d.h
 
 find_package(catkin REQUIRED COMPONENTS
   base_local_planner
@@ -67,7 +65,7 @@ add_library(${PROJECT_NAME}
   src/utils.cpp src/utils.hpp
 )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_compile_options(${PROJECT_NAME} PRIVATE ${FLAGS})
+target_compile_warnings(${PROJECT_NAME} ${EXTRA_FLAGS})
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 #############
@@ -92,10 +90,10 @@ ruvu_lint_add_test()
 
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(test_utils test/test_utils.cpp)
-  target_compile_options(test_utils PRIVATE ${FLAGS})
+  target_compile_warnings(test_utils)
   target_link_libraries(test_utils ${catkin_LIBRARIES})
 
   catkin_add_gtest(geometry_utils test/test_geometry_utils.cpp)
-  target_compile_options(geometry_utils PRIVATE ${FLAGS})
+  target_compile_warnings(geometry_utils)
   target_link_libraries(geometry_utils ${catkin_LIBRARIES})
 endif()
