@@ -162,13 +162,6 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf2::Stamped
   cmd_vel.linear.x = std::min(cmd_vel.linear.x, limits.max_vel_trans);
   cmd_vel.linear.x = std::max(cmd_vel.linear.x, -limits.max_vel_trans);
 
-  // verify
-  if (std::abs(cmd_vel.linear.x) < limits.min_vel_trans)
-  {
-    ROS_WARN_STREAM_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "min_vel_trans prevents the robot from moving");
-    return Outcome::NO_VALID_CMD;
-  }
-
   // At this point we have a valid linear velocity
 
   // Scale back the forward velocity when turning faster
