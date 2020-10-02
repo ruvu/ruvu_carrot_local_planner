@@ -96,6 +96,7 @@ private:
   bool setup_ = false;
 
   std::unique_ptr<LatchedStopRotateController> latchedStopRotateController_;
+  bool is_overshoot = false;
 
   bool initialized_ = false;
 

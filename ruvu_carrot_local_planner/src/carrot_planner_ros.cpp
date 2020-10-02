@@ -125,6 +125,7 @@ bool CarrotPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped>& or
   }
   // when we get a new plan, we also want to clear any latch we may have on goal tolerances
   latchedStopRotateController_->resetLatching();
+  is_overshoot = false;
 
   ROS_INFO_NAMED("ruvu_carrot_local_planner", "Got new plan");
   carrot_planner_->setPlan(orig_global_plan);
@@ -166,7 +167,10 @@ bool CarrotPlannerROS::isGoalReached(double xy_tolerance, double yaw_tolerance)
   }
   else
   {
-    return false;
+    if (is_overshoot)
+      return true;
+    else
+      return false;
   }
 }
 
@@ -270,6 +274,9 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
         }
         publishGlobalPlan(transformed_plan);
         break;
+      case CarrotPlanner::Outcome::MISSED_GOAL:
+        is_overshoot = true;
+        // fall through
       default:
         ROS_WARN_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "Carrot planner failed to produce path.");
         std::vector<geometry_msgs::PoseStamped> empty_plan;
