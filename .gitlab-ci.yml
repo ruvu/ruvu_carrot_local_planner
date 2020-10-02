@@ -1,78 +1,13 @@
-# Copyright 2020 RUVU Robotics B.V.
-
-image: docker:git
+---
+include:
+  - project: ruvu/environment
+    file: ROS.gitlab-ci.yml
 
 variables:
-    PACKAGES: >
-        ruvu_carrot_local_planner
-        turtlebot3_carrot_planner
-    IMAGE_PATH: registry.gitlab.com/$CI_PROJECT_PATH
-
-before_script:
-    - mkdir ~/.ssh
-    - ssh-keyscan -t rsa gitlab.com > ~/.ssh/known_hosts
-    - echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
-    - chmod 400 ~/.ssh/id_rsa
-
-    # Clone the ruvu-env for the docker images
-    - git clone git@gitlab.com:ruvu/environment.git ~/.ruvu
-    - cd ~/.ruvu
-
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-
-stages:
-    - build
-    - test
-    - release
-
-.build-on-schedule:
-    stage: build
-    only:
-        - schedules
-    script:
-        - docker build --pull --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY" --build-arg BASE_IMAGE="ros:$ROS_DISTRO-ros-base" --build-arg WORKSPACE=common --build-arg PACKAGES="$PACKAGES" --build-arg VERSION="$CI_COMMIT_REF_NAME" -t $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} -f docker/Dockerfile .
-        - docker push $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
-
-.build:
-    stage: build
-    except:
-        - schedules
-    script:
-        - docker build --pull --build-arg SSH_PRIVATE_KEY="$SSH_PRIVATE_KEY" --build-arg BASE_IMAGE="${IMAGE_PATH}/$ROS_DISTRO:latest" --build-arg WORKSPACE=common --build-arg PACKAGES="$PACKAGES" --build-arg VERSION="$CI_COMMIT_REF_NAME" -t $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} -f docker/Dockerfile .
-        - docker push $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
-
-.test:
-    stage: test
-    script:
-        - docker pull $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
-        - docker run --rm --entrypoint /.ruvu/docker/entrypoint_run_tests.sh $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} catkin_test_results
-
-.release:
-    stage: release
-    only:
-        refs:
-          - master
-    script:
-        - docker pull $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-}
-        - docker tag $IMAGE_PATH/$ROS_DISTRO:${CI_COMMIT_REF_NAME//\//-} $IMAGE_PATH/$ROS_DISTRO:latest
-        - docker push $IMAGE_PATH/$ROS_DISTRO:latest
-
-kinetic-build-on-schedule:
-  extends: .build-on-schedule
-  variables:
-    ROS_DISTRO: kinetic
-kinetic-build:
-  extends: .build
-  variables:
-    ROS_DISTRO: kinetic
-kinetic-test:
-  extends: .test
-  variables:
-    ROS_DISTRO: kinetic
-kinetic-release:
-  extends: .release
-  variables:
-    ROS_DISTRO: kinetic
+  WORKSPACE: common
+  PACKAGES: >
+    ruvu_carrot_local_planner
+    turtlebot3_carrot_planner
 
 melodic-build-on-schedule:
   extends: .build-on-schedule
@@ -95,18 +30,18 @@ noetic-build-on-schedule:
   extends: .build-on-schedule
   variables:
     ROS_DISTRO: noetic
-    PACKAGES: >  # turtlebot is not released yet, so temporary skip it
-        ruvu_carrot_local_planner
 noetic-build:
   extends: .build
   variables:
     ROS_DISTRO: noetic
-    PACKAGES: >  # turtlebot is not released yet, so temporary skip it
-        ruvu_carrot_local_planner
+    PACKAGES: >
+      ruvu_carrot_local_planner
 noetic-test:
   extends: .test
   variables:
     ROS_DISTRO: noetic
+    PACKAGES: >
+      ruvu_carrot_local_planner
 noetic-release:
   extends: .release
   variables:
