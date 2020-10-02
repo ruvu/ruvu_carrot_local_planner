@@ -1,8 +1,8 @@
+<?xml version="1.0"?>
 <!--
 Copyright 2020 RUVU Robotics B.V.
 -->
 
-<?xml version="1.0"?>
 <launch>
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot3_carrot_planner)/param/config.rviz"/>
 </launch>
