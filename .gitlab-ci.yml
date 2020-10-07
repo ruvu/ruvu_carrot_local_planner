@@ -30,6 +30,8 @@ noetic-build-on-schedule:
   extends: .build-on-schedule
   variables:
     ROS_DISTRO: noetic
+    PACKAGES: >
+      ruvu_carrot_local_planner
 noetic-build:
   extends: .build
   variables:
@@ -40,8 +42,6 @@ noetic-test:
   extends: .test
   variables:
     ROS_DISTRO: noetic
-    PACKAGES: >
-      ruvu_carrot_local_planner
 noetic-release:
   extends: .release
   variables:
