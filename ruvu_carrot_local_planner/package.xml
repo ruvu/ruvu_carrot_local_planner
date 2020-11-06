@@ -5,7 +5,7 @@ Copyright 2020 RUVU Robotics B.V.
 
 <package format="2">
   <name>ruvu_carrot_local_planner</name>
-  <version>0.0.1</version>
+  <version>1.0.0</version>
   <description>ruvu_carrot_local_planner implements a carrot planner based local planner according to the mbf_costmap_core::CostmapController interface specified in the <a href="http://wiki.ros.org/mbf_costmap_core">mbf_costmap_core</a> package.
   </description>
 
