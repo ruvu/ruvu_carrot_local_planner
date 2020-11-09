@@ -5,7 +5,7 @@ Copyright 2020 RUVU Robotics B.V.
 
 <package format="2">
   <name>turtlebot3_carrot_planner</name>
-  <version>0.0.0</version>
+  <version>1.0.0</version>
   <description>Demonstrates the carrot planner running on a turtlebot in simulation.</description>
 
   <maintainer email="ramon@ruvu.nl">Ramon Wijnands</maintainer>
