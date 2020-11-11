@@ -172,11 +172,9 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf2::Stamped
   // At this point we have a valid linear velocity
 
   // Scale back the forward velocity when turning faster
-  {
-    double brake_factor = 1 - fabs(cmd_vel.angular.z / limits.max_vel_theta);
-    brake_factor = brake_factor < 0 ? 0 : brake_factor;
-    cmd_vel.linear.x *= brake_factor;
-  }
+  double brake_factor = 1 - pow(cmd_vel.angular.z, 2) / pow(limits.max_vel_theta, 2);
+  brake_factor = brake_factor < 0 ? 0 : brake_factor;
+  cmd_vel.linear.x *= brake_factor;
 
   // Re-apply potential violated linear velocity constraints
   cmd_vel.linear.x = std::abs(cmd_vel.linear.x) < limits.min_vel_trans ? sgn(cmd_vel.linear.x) * limits.min_vel_trans :
