@@ -159,15 +159,21 @@ bool CarrotPlannerROS::isGoalReached(double xy_tolerance, double yaw_tolerance)
   pose = current_pose;
 #endif
 
-  if (latchedStopRotateController_->isGoalReached(&planner_util_, odom_helper_, pose))
-  {
-    ROS_INFO_NAMED("ruvu_carrot_local_planner", "Goal reached");
-    return true;
-  }
-  else
+  nav_msgs::Odometry odom;
+  odom_helper_.getOdom(odom);
+  auto limits = planner_util_.getCurrentLimits();
+  if (!base_local_planner::stopped(odom, limits.theta_stopped_vel, limits.trans_stopped_vel))
   {
     return false;
   }
+
+  if (!latchedStopRotateController_->isGoalReached(&planner_util_, odom_helper_, pose))
+  {
+    return false;
+  }
+
+  ROS_INFO_NAMED("ruvu_carrot_local_planner", "Goal reached");
+  return true;
 }
 
 bool CarrotPlannerROS::cancel()
@@ -214,16 +220,20 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   carrot_planner_->updatePlan(transformed_plan);
   simulator_->updatePlanAndFootprint(transformed_plan, costmap_ros_->getRobotFootprint());
 
+  nav_msgs::Odometry odom;
+  odom_helper_.getOdom(odom);
+  auto limits = planner_util_.getCurrentLimits();
+
   // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
   // enough to goal
-  if (latchedStopRotateController_->isPositionReached(&planner_util_, robot_pose))
+  if (latchedStopRotateController_->isPositionReached(&planner_util_, robot_pose) &&
+      fabs(odom.twist.twist.linear.x) <= limits.trans_stopped_vel)
   {
     // Publish an empty plan because we've reached our goal position
     std::vector<geometry_msgs::PoseStamped> local_plan;
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
     publishGlobalPlan(transformed_plan);
     publishLocalPlan(local_plan);
-    auto limits = planner_util_.getCurrentLimits();
     if (latchedStopRotateController_->computeVelocityCommandsStopRotate(
             cmd_vel.twist, limits.getAccLimits(), simulator_->getSimPeriod(), &planner_util_, odom_helper_, robot_pose,
             boost::bind(&Simulator::checkTrajectory, simulator_.get(), _1, _2, _3)))
@@ -239,8 +249,6 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   {
     tf2::Stamped<tf2::Transform> robot_pose_tf;
     tf2::convert(robot_pose, robot_pose_tf);
-    nav_msgs::Odometry odom;
-    odom_helper_.getOdom(odom);
     base_local_planner::Trajectory trajectory;
     auto outcome =
         carrot_planner_->computeVelocityCommands(robot_pose_tf, odom.twist.twist, cmd_vel.twist, message, trajectory);

@@ -165,8 +165,10 @@ CarrotPlanner::Outcome CarrotPlanner::computeVelocityCommands(const tf2::Stamped
   // verify
   if (std::abs(cmd_vel.linear.x) < limits.min_vel_trans)
   {
-    ROS_WARN_STREAM_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "min_vel_trans prevents the robot from moving");
-    return Outcome::NO_VALID_CMD;
+    ROS_INFO_STREAM_THROTTLE_NAMED(5, "ruvu_carrot_local_planner", "min_vel_trans prevents the robot from moving");
+    cmd_vel.linear.x = 0;
+    cmd_vel.angular.z = 0;
+    return Outcome::OK;
   }
 
   // At this point we have a valid linear velocity
