@@ -226,23 +226,35 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
 
   // Dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close
   // enough to goal
-  if (latchedStopRotateController_->isPositionReached(&planner_util_, robot_pose) &&
-      fabs(odom.twist.twist.linear.x) <= limits.trans_stopped_vel)
+  if (latchedStopRotateController_->isPositionReached(&planner_util_, robot_pose))
   {
     // Publish an empty plan because we've reached our goal position
     std::vector<geometry_msgs::PoseStamped> local_plan;
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
     publishGlobalPlan(transformed_plan);
     publishLocalPlan(local_plan);
-    if (latchedStopRotateController_->computeVelocityCommandsStopRotate(
-            cmd_vel.twist, limits.getAccLimits(), simulator_->getSimPeriod(), &planner_util_, odom_helper_, robot_pose,
-            boost::bind(&Simulator::checkTrajectory, simulator_.get(), _1, _2, _3)))
+
+    if (fabs(odom.twist.twist.linear.x) <= limits.trans_stopped_vel)
     {
-      return 0;
+      ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Calling the LatchedStopRotateController");
+      if (latchedStopRotateController_->computeVelocityCommandsStopRotate(
+              cmd_vel.twist, limits.getAccLimits(), simulator_->getSimPeriod(), &planner_util_, odom_helper_,
+              robot_pose, boost::bind(&Simulator::checkTrajectory, simulator_.get(), _1, _2, _3)))
+      {
+        return 0;
+      }
+      else
+      {
+        return 100;
+      }
     }
     else
     {
-      return 100;
+      ROS_DEBUG_NAMED("ruvu_carrot_local_planner", "Braking with maximium acceleration");
+      cmd_vel.twist.linear.x = 0.0;
+      cmd_vel.twist.linear.y = 0.0;
+      cmd_vel.twist.angular.z = 0.0;
+      return 0;
     }
   }
   else
