@@ -1,6 +1,6 @@
 # Copyright 2020 RUVU Robotics B.V.
 
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(ruvu_carrot_local_planner)
 
 add_compile_options(-std=c++11)
