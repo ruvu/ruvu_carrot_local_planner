@@ -18,15 +18,6 @@ void LocalPlannerUtil::initialize(TF* tf, costmap_2d::Costmap2D* costmap, std::s
   base_local_planner::LocalPlannerUtil::initialize(tf, costmap, global_frame);
 }
 
-bool LocalPlannerUtil::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan)
-{
-  if (!base_local_planner::LocalPlannerUtil::setPlan(orig_global_plan))
-    return false;
-
-  pruned_plan_ = orig_global_plan;
-  return true;
-}
-
 bool LocalPlannerUtil::getLocalPlan(const geometry_msgs::PoseStamped& global_pose,
                                     std::vector<geometry_msgs::PoseStamped>& transformed_plan)
 {
@@ -52,10 +43,7 @@ bool LocalPlannerUtil::getLocalPlan(const geometry_msgs::PoseStamped& global_pos
         });
 
     auto remove_count = closest - transformed_plan.begin();
-    pruned_plan_.erase(pruned_plan_.begin(), pruned_plan_.begin() + remove_count);
     transformed_plan.erase(transformed_plan.begin(), transformed_plan.begin() + remove_count);
-
-    base_local_planner::LocalPlannerUtil::setPlan(pruned_plan_);
   }
 
   return true;
