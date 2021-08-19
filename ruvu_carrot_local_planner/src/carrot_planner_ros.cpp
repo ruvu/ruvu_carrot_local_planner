@@ -220,6 +220,8 @@ uint32_t CarrotPlannerROS::computeVelocityCommands(const geometry_msgs::PoseStam
   carrot_planner_->updatePlan(transformed_plan);
   simulator_->updatePlanAndFootprint(transformed_plan, costmap_ros_->getRobotFootprint());
 
+  publishGlobalPlan(transformed_plan);
+
   nav_msgs::Odometry odom;
   odom_helper_.getOdom(odom);
   auto limits = planner_util_.getCurrentLimits();
